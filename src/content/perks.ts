@@ -23,10 +23,12 @@ export const PERKS: Partial<Record<NpcId, Perk[]>> = {
     { need: '信任 30', reward: '可以请教第二次', ok: (s) => t(s, 'gensai') >= 30 },
     { need: '信任 30 · 尊敬 22 · 胜隼人一次', reward: '接受师父的考验，习得“柳返”，三项上限 +1', ok: (s) => t(s, 'gensai') >= 30 && r(s, 'gensai') >= 22 && wins(s, 'hayato'), done: (s) => !!s.flags.masterRecognized },
     { need: '信任 45', reward: '可以请教第三次', ok: (s) => t(s, 'gensai') >= 45 },
+    { need: '获得认可后 · 信任 50', reward: '传授秘传“残心”（势 4）', ok: (s) => !!s.flags.masterRecognized && t(s, 'gensai') >= 50, done: (s) => s.player.techniques.includes('zanshin') },
   ],
   hayato: [
     { need: '信任 14 · 尊敬 10 · 胜他一次', reward: '茶屋夜谈，成为朋友并学会“踏入”', ok: (s) => t(s, 'hayato') >= 14 && r(s, 'hayato') >= 10 && wins(s, 'hayato'), done: (s) => s.player.techniques.includes('fumikomi') },
     { need: '信任 20', reward: '切磋后会告诉你权六的习惯（权六情报 +1）', ok: (s) => t(s, 'hayato') >= 20 },
+    { need: '成为朋友后 · 信任 30', reward: '传授秘传“二段”（势 3）', ok: (s) => s.player.techniques.includes('fumikomi') && t(s, 'hayato') >= 30, done: (s) => s.player.techniques.includes('nidan') },
   ],
   seibei: [
     { need: '信任 20', reward: '帮他拉风箱的工钱从 20 文涨到 30 文', ok: (s) => t(s, 'seibei') >= 20 },
@@ -41,7 +43,10 @@ export const PERKS: Partial<Record<NpcId, Perk[]>> = {
     { need: '信任 15 · 胜他一次', reward: '传授“见切”（眼力视为高一级）', ok: (s) => t(s, 'toshiie') >= 15 && wins(s, 'toshiie'), done: (s) => s.player.techniques.includes('mikiri') },
     { need: '信任 20 · 尊敬 12', reward: '邀你一同奔赴战场', ok: (s) => t(s, 'toshiie') >= 20 && r(s, 'toshiie') >= 12, done: (s) => !!s.flags.toshiieOathAsked },
   ],
-  gonroku: [{ need: '胜他一次', reward: '承认你能破他的守', ok: (s) => wins(s, 'gonroku') }],
+  gonroku: [
+    { need: '胜他一次', reward: '承认你能破他的守', ok: (s) => wins(s, 'gonroku') },
+    { need: '胜他两次', reward: '传授秘传“诱”（势 2）', ok: (s) => ((s.flags.wins_gonroku as number) ?? 0) >= 2, done: (s) => s.player.techniques.includes('sasoi') },
+  ],
   gosaku: [
     { need: '救下孙子', reward: '炭窑按旧价卖炭给你', ok: (s) => !!s.flags.villageSaved },
     { need: '孙子康复后', reward: '村里人凑钱谢你，并告诉你后山的跑步路线', ok: (s) => s.npcs.gosaku.memories.some((m) => m.id === 'recovered') },

@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/build.mjs --dev && npx serve dist",
-    "test": "node --import tsx --test tests/engine.test.ts tests/audio.test.ts tests/v03.test.ts",
+    "test": "node --import tsx --test tests/engine.test.ts tests/audio.test.ts tests/v03.test.ts tests/v04.test.ts",
     "typecheck": "tsc -p tsconfig.json",
     "balance": "tsx scripts/balance.ts",
     "playthrough": "tsx scripts/playthrough.ts"

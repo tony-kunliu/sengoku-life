@@ -973,3 +973,33 @@ p.ai-off { font-size: 0.75rem; display: block; }
 .gallery li { display: flex; flex-direction: column; padding: 8px 12px; border: 1px dashed var(--paper-3); border-radius: 4px; line-height: 1.45; }
 .gallery li.got { border-style: solid; border-color: var(--gold); }
 .gallery li small { color: var(--ink-soft); }
+
+/* ═════════════ v0.4：势与秘传 ═════════════ */
+.sei { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; }
+.sei-pip { width: 12px; height: 12px; transform: rotate(45deg) scale(0.75); background: rgba(239, 232, 218, 0.15); border-radius: 2px; }
+.sei-pip.on { background: var(--vermilion); box-shadow: 0 0 6px rgba(181, 54, 31, 0.7); }
+.techs-row { display: flex; gap: 8px; }
+.tech-btn {
+  flex: 1;
+  min-height: 46px;
+  border-radius: 6px;
+  border: 1px solid rgba(216, 191, 134, 0.35);
+  background: rgba(239, 232, 218, 0.06);
+  color: rgba(239, 232, 218, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
+}
+.tech-btn.ready { border-color: var(--vermilion); background: rgba(181, 54, 31, 0.25); color: var(--paper); animation: techReady 1.6s ease-in-out infinite; }
+@keyframes techReady { 0%, 100% { box-shadow: 0 0 0 rgba(181, 54, 31, 0); } 50% { box-shadow: 0 0 12px rgba(181, 54, 31, 0.6); } }
+.tech-name { font-family: var(--brush); font-size: 1.25rem; }
+.tech-cost { font-size: 0.7rem; }
+.tech-toggle { width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; background: transparent; border: 1px solid var(--paper-3); border-radius: 4px; padding: 8px 10px; min-height: 52px; }
+.tech-toggle.on { border-color: var(--gold); background: rgba(184, 145, 63, 0.1); }
+.tech-toggle:disabled { opacity: 0.55; }
+.tech-check { flex: none; width: 26px; height: 26px; display: grid; place-items: center; font-family: var(--brush); border-radius: 50%; border: 1px solid var(--paper-3); }
+.tech-toggle.on .tech-check { background: var(--vermilion); border-color: var(--vermilion); color: var(--paper); }
+.tech-body { display: flex; flex-direction: column; font-size: 0.86rem; line-height: 1.45; }
+.techs li { border-left: 0; padding-left: 0; }

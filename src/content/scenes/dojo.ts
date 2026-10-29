@@ -515,4 +515,101 @@ export const DOJO: SceneDef[] = [
       },
     },
   },
+  {
+    id: 'learn_nidan',
+    title: '隼人的绝招',
+    art: 'dojo',
+    priority: 44,
+    trigger: {
+      loc: ['dojo'],
+      when: (s) =>
+        s.player.techniques.includes('fumikomi') && !s.player.techniques.includes('nidan') && R(s, 'hayato').trust >= 30 && !s.flags.hayatoSummoned && s.slot < 2,
+    },
+    nodes: {
+      start: {
+        speaker: 'hayato',
+        text: '喂，{name}，过来。\n\n这招我练了三年，连权六都没见过——第一刀是假的，被挡住的瞬间，第二刀才是真的。我叫它“二段”。\n\n……别误会！我只是想找个像样的对手，看看它到底管不管用。',
+        choices: [
+          {
+            label: '拿起木刀，请他示范',
+            effects: [
+              { t: 'tech', id: 'nidan' },
+              { t: 'rel', npc: 'hayato', trust: 5, respect: 3 },
+              { t: 'time', slots: 1 },
+              { t: 'mem', npc: 'hayato', id: 'nidan', text: '隼人把自己练了三年的绝招“二段”教给了你。' },
+            ],
+            next: 'done',
+          },
+        ],
+      },
+      done: {
+        speaker: 'narrator',
+        text: '你挨了不知多少下第二刀，终于学会在被挡的瞬间顺势再斩。\n\n【秘传】二段：比试中积攒 3 点“势”即可发动。势来自防守、看破对手和被对手击中。',
+      },
+    },
+  },
+  {
+    id: 'learn_sasoi',
+    title: '权六的诱',
+    art: 'dojo',
+    priority: 43,
+    trigger: {
+      loc: ['dojo'],
+      when: (s) => ((s.flags.wins_gonroku as number) ?? 0) >= 2 && !s.player.techniques.includes('sasoi') && s.slot < 2 && !!s.flags.admitted,
+    },
+    nodes: {
+      start: {
+        speaker: 'gonroku',
+        text: '……你破了我的守两次。\n\n守，就是等对手犯错。但有的人不犯错——那就让他犯。（权六的刀尖向下一沉，露出胸前的空当。）\n\n看见了？那是假的。来砍的人，都会砍空。',
+        choices: [
+          {
+            label: '试着砍向那个空当',
+            effects: [
+              { t: 'tech', id: 'sasoi' },
+              { t: 'rel', npc: 'gonroku', trust: 6, respect: 6 },
+              { t: 'time', slots: 1 },
+              { t: 'mem', npc: 'gonroku', id: 'sasoi', text: '权六教会了你“诱”——故意露出破绽，让对手砍空。' },
+            ],
+            next: 'done',
+          },
+        ],
+      },
+      done: {
+        speaker: 'narrator',
+        text: '你砍空了，木刀轻轻落在你的肩上。权六难得地笑了一下。\n\n【秘传】诱：消耗 2 点“势”。专克进攻型的对手。',
+      },
+    },
+  },
+  {
+    id: 'learn_zanshin',
+    title: '残心',
+    art: 'dojo',
+    priority: 42,
+    trigger: {
+      loc: ['dojo'],
+      when: (s) => !!s.flags.masterRecognized && R(s, 'gensai').trust >= 50 && !s.player.techniques.includes('zanshin') && s.day < 17,
+    },
+    nodes: {
+      start: {
+        speaker: 'gensai',
+        text: '{name}，你还记得我说过，剑是用来知道何时该退的吗？\n\n今天教你的，是何时不必退。\n\n斩完之后，心不离开对手——这叫“残心”。心在，刀就在。对手无论从哪里来，你都已经在那里了。',
+        choices: [
+          {
+            label: '跪坐，闭上眼睛',
+            effects: [
+              { t: 'tech', id: 'zanshin' },
+              { t: 'rel', npc: 'gensai', trust: 5, respect: 5 },
+              { t: 'time', slots: 1 },
+              { t: 'mem', npc: 'gensai', id: 'zanshin', text: '师父把柳心流的心法“残心”传给了你。' },
+            ],
+            next: 'done',
+          },
+        ],
+      },
+      done: {
+        speaker: 'narrator',
+        text: '那一整天，师父只是让你站着。直到黄昏，你才明白：等，也是一种出刀。\n\n【秘传】残心：消耗 4 点“势”。最强的防守反击。',
+      },
+    },
+  },
 ];

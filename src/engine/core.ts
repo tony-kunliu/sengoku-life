@@ -1,7 +1,7 @@
 // 基础状态操作（在克隆后的草稿上原地修改）
 import type { GameState, LogKind, NpcId, NpcState, Stance, StatKey } from './types';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 const ALL_NPCS: NpcId[] = ['gensai', 'hayato', 'seibei', 'oryo', 'toshiie', 'gonroku', 'gosaku', 'nobunaga'];
 
@@ -29,6 +29,7 @@ export function newGame(name: string, seed = Date.now() % 1_000_000_007): GameSt
       life: { wit: { lv: 1, xp: 0, cap: 5, reps: 0 }, speech: { lv: 0, xp: 0, cap: 5, reps: 0 }, med: { lv: 0, xp: 0, cap: 5, reps: 0 } },
       maxStamina: 8,
       techniques: [],
+      equipped: [],
       weapon: 0,
       lodging: 'none',
     },

@@ -41,7 +41,8 @@ export const OPPONENTS: Record<string, OpponentDef> = {
     def: 3,
     eye: 3,
     maxStamina: 11,
-    styleNote: '又左卫门是应变型：他会盯住你最近反复使用的手段并针对。故意重复一招，再突然变招，才能骗过他。',
+    techniques: ['nidan'],
+    styleNote: '又左卫门是应变型：他会盯住你最近反复使用的手段并针对。故意重复一招，再突然变招，才能骗过他。势满三格时，他的进攻会变成【二段】——别只顾着挡。',
     tells: {
       atk: '又左卫门咧嘴一笑，长身一探',
       def: '又左卫门收起笑容，木刀横在身前',

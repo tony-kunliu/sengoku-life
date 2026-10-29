@@ -114,6 +114,7 @@ test('存档：v1 存档迁移到 v2，补上生活能力', () => {
   const player = { ...(s.player as Record<string, unknown>) };
   delete player.life;
   const m = migrate({ ...s, player, version: 1, flags: { villageSaved: true } });
-  assert.equal(m.version, 2);
+  assert.equal(m.version, 3);
+  assert.deepEqual(m.player.equipped, []);
   assert.equal(m.player.life.med.lv, 1);
 });

@@ -24,6 +24,19 @@ export const MIGRATIONS: Record<number, Migration> = {
     }
     return { ...raw, player, version: 2 };
   },
+  // 2 → 3：v0.4 新增技法携带（最多 3 个），比试状态新增“势”
+  2: (raw) => {
+    const player = { ...(raw.player as Record<string, unknown>) };
+    const techs = (player.techniques as string[]) ?? [];
+    if (!player.equipped) player.equipped = techs.slice(0, 3);
+    const bout = raw.bout as { combat: Record<string, unknown> & { p: Record<string, unknown>; o: Record<string, unknown> } } | null;
+    if (bout?.combat) {
+      bout.combat.p.sei ??= 0;
+      bout.combat.o.sei ??= 0;
+      bout.combat.oppTech ??= null;
+    }
+    return { ...raw, player, version: 3 };
+  },
 };
 
 export function migrate(raw: unknown): GameState {

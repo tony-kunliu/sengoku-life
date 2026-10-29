@@ -63,6 +63,8 @@ export interface PlayerState {
   life: Record<LifeKey, StatProgress>;
   maxStamina: number;
   techniques: string[];
+  /** 比试时携带的技法（最多 3 个） */
+  equipped: string[];
   /** 兵器加成（木刀品质） */
   weapon: number;
   lodging: 'none' | 'teahouse' | 'forge';

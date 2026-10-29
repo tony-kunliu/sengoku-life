@@ -8,8 +8,8 @@
 // 数值（攻击、守备、架势、主动、距离、气力）决定克制能否兑现。
 
 import { jitter, roll, weighted, type RngHolder } from '../rng';
-import type { CombatState, Distance, Fighter, Move, OpponentDef, RoundRecord, Side } from './types';
-import { DISTANCE_LABEL, MOVE_LABEL } from './types';
+import type { CombatState, Distance, Fighter, Move, OpponentDef, RoundRecord, Side, TechId } from './types';
+import { DISTANCE_LABEL, MAX_SEI, MOVE_LABEL, TECH_BASE, TECH_COST } from './types';
 import { opponentWeights } from './ai';
 
 export const COST: Record<Move, number> = { atk: -2, def: -1, probe: -1, adjust: 3 };
@@ -41,6 +41,7 @@ export function createCombat(
     points: 0,
     techniques: [...player.techniques],
     weapon: player.weapon,
+    sei: 0,
   };
   const o: Fighter = {
     name: opp.name,
@@ -53,6 +54,7 @@ export function createCombat(
     points: 0,
     techniques: [...(opp.techniques ?? [])],
     weapon: 0,
+    sei: 0,
   };
   const cs: CombatState = {
     round: 1,
@@ -65,6 +67,7 @@ export function createCombat(
     oppId: opp.id,
     style: opp.style,
     oppNext: 'def',
+    oppTech: null,
     reveal: false,
     oppRead: 0,
     history: [],
@@ -73,8 +76,15 @@ export function createCombat(
     result: null,
     rng: rngState,
   };
-  cs.oppNext = weighted(cs, opponentWeights(cs));
+  pickOpp(cs);
   return cs;
+}
+
+/** 对手决定下一手：势足够且会二段时，进攻会升级为二段 */
+function pickOpp(cs: CombatState) {
+  cs.oppNext = weighted(cs, opponentWeights(cs));
+  cs.oppTech = null;
+  if (cs.oppNext === 'atk' && cs.o.techniques.includes('nidan') && cs.o.sei >= TECH_COST.nidan) cs.oppTech = 'nidan';
 }
 
 const fighter = (cs: CombatState, s: Side) => (s === 'p' ? cs.p : cs.o);
@@ -111,7 +121,11 @@ interface Ctx {
   scorer: Side | null;
   revealNext: boolean;
   readNext: boolean;
+  /** 本回合的威力加成（秘传） */
+  bonus: { p: number; o: number };
 }
+
+const powOf = (c: Ctx, s: Side) => power(c.cs, s) + c.bonus[s];
 
 function score(c: Ctx, s: Side, how: string) {
   if (c.scorer) return;
@@ -136,8 +150,8 @@ function revealBy(c: Ctx, s: Side) {
 
 function resolveAttackVsAttack(c: Ctx) {
   const cs = c.cs;
-  const pp = power(cs, 'p') + jitter(cs);
-  const op = power(cs, 'o') + jitter(cs);
+  const pp = powOf(c, 'p') + jitter(cs);
+  const op = powOf(c, 'o') + jitter(cs);
   const diff = pp - op;
   c.lines.push(`双方同时出刀（你 ${pp} 对 ${cs.o.name} ${op}）。`);
   if (diff >= 2) score(c, 'p', '你的刀更快一步');
@@ -153,7 +167,7 @@ function resolveAttackVsAttack(c: Ctx) {
 
 function resolveAttackVsDefend(c: Ctx, att: Side, dfn: Side) {
   const cs = c.cs;
-  const pw = power(cs, att) + jitter(cs);
+  const pw = powOf(c, att) + jitter(cs);
   const gd = guard(cs, dfn);
   const margin = pw - gd;
   const df = fighter(cs, dfn);
@@ -180,7 +194,7 @@ function resolveAttackVsProbe(c: Ctx, att: Side, prb: Side) {
     revealBy(c, prb);
     return;
   }
-  const pw = power(cs, att) + jitter(cs);
+  const pw = powOf(c, att) + jitter(cs);
   const gd = guard(cs, prb) - 1;
   c.lines.push(`${nm(c, prb)}正欲试探，${nm(c, att)}直接出刀（攻 ${pw} 对 守 ${gd}）。`);
   if (pw >= gd) score(c, att, '趁对方试探的空隙');
@@ -194,7 +208,7 @@ function resolveAttackVsProbe(c: Ctx, att: Side, prb: Side) {
 
 function resolveAttackVsAdjust(c: Ctx, att: Side, adj: Side) {
   const cs = c.cs;
-  const pw = power(cs, att) + jitter(cs);
+  const pw = powOf(c, att) + jitter(cs);
   if (pw >= 2) {
     c.lines.push(`${nm(c, adj)}正在调息，${nm(c, att)}抓住时机进攻（攻 ${pw}）。`);
     score(c, att, '打中了调整中的对手');
@@ -260,6 +274,92 @@ function resolveAdjustVsAdjust(c: Ctx) {
   c.cs.distance = 0;
 }
 
+// ───────── 秘传 ─────────
+
+/** 二段：被挡下也能补上第二刀 */
+function nidanVsDefend(c: Ctx, att: Side, dfn: Side) {
+  const cs = c.cs;
+  const a = powOf(c, att) + 2 + jitter(cs);
+  const g = guard(cs, dfn);
+  c.lines.push(`${nm(c, att)}使出【二段】：第一刀被挡，第二刀紧跟而至（攻 ${a} 对 守 ${g}）。`);
+  if (a - g >= 1) score(c, att, '二段——第二刀斩中');
+  else {
+    c.lines.push(`${nm(c, dfn)}连挡两刀，${nm(c, att)}的架势一乱。`);
+    posture(c, att, -1);
+    cs.initiative = dfn;
+  }
+  cs.distance = 2;
+}
+
+/** 诱：假动作引对手出刀，侧身反击 */
+function sasoiVsAttack(c: Ctx, lure: Side, att: Side) {
+  const cs = c.cs;
+  const a = powOf(c, lure) + jitter(cs);
+  const g = guard(cs, att) - 1;
+  c.lines.push(`${nm(c, lure)}使出【诱】：故意露出破绽，${nm(c, att)}果然出刀——${nm(c, lure)}侧身让过（攻 ${a} 对 守 ${g}）。`);
+  if (a >= g) score(c, lure, '诱——让过来刀，回身斩中');
+  else {
+    c.lines.push(`反击被勉强躲开，但${nm(c, att)}的下一手已被看穿。`);
+    cs.initiative = lure;
+    revealBy(c, lure);
+    posture(c, att, -1);
+  }
+  cs.distance = 2;
+}
+
+/** 残心：不动如山，来刀即反击；对方不攻则看穿其意图 */
+function zanshin(c: Ctx, me: Side, foeMove: Move, foeTech: TechId | undefined) {
+  const cs = c.cs;
+  const foe: Side = me === 'p' ? 'o' : 'p';
+  if (foeMove === 'atk') {
+    const a = powOf(c, foe) + (foeTech === 'nidan' ? 2 : 0) + jitter(cs);
+    const g = guard(cs, me) + 1;
+    c.lines.push(`${nm(c, me)}以【残心】静待，${nm(c, foe)}出刀（攻 ${a} 对 守 ${g}）。`);
+    if (a - g >= 3) score(c, foe, '攻势之强，连残心也挡不住');
+    else score(c, me, '残心——来刀落空，回手一击');
+    cs.distance = 2;
+    return;
+  }
+  c.lines.push(`${nm(c, me)}以【残心】静待，${nm(c, foe)}${foeMove === 'probe' ? '的佯攻毫无作用' : '不敢妄动'}。${nm(c, me)}看穿了对方的意图。`);
+  posture(c, me, 1);
+  cs.initiative = me;
+  revealBy(c, me);
+}
+
+/** 处理有秘传参与的回合；返回 true 表示已结算 */
+function resolveTech(c: Ctx, pm: Move, om: Move, pt?: TechId, ot?: TechId): boolean {
+  if (!pt && !ot) return false;
+  if (pt === 'zanshin') return zanshin(c, 'p', om, ot), true;
+  if (ot === 'zanshin') return zanshin(c, 'o', pm, pt), true;
+  if (pt === 'sasoi' && om === 'atk') return sasoiVsAttack(c, 'p', 'o'), true;
+  if (ot === 'sasoi' && pm === 'atk') return sasoiVsAttack(c, 'o', 'p'), true;
+  if (pt === 'nidan' && om === 'def') return nidanVsDefend(c, 'p', 'o'), true;
+  if (ot === 'nidan' && pm === 'def') return nidanVsDefend(c, 'o', 'p'), true;
+  // 其余情形：秘传按基础行动结算，二段威力 +1，诱在互探中必胜
+  if (pt === 'nidan') c.bonus.p += 1;
+  if (ot === 'nidan') c.bonus.o += 1;
+  if (pt === 'sasoi' && om === 'probe') {
+    c.lines.push('你使出【诱】，对方的试探反被你牵着走。');
+    c.cs.initiative = 'p';
+    revealBy(c, 'p');
+    return true;
+  }
+  if (pt) c.lines.push(`你使出【${TECH_NAME[pt]}】。`);
+  if (ot) c.lines.push(`${c.cs.o.name}使出【${TECH_NAME[ot]}】！`);
+  return false;
+}
+
+export const TECH_NAME: Record<TechId, string> = { nidan: '二段', sasoi: '诱', zanshin: '残心' };
+
+function gainSei(f: Fighter, n: number) {
+  f.sei = Math.min(MAX_SEI, f.sei + n);
+}
+
+/** 玩家此刻能否发动某秘传 */
+export function canUseTech(cs: CombatState, t: TechId): boolean {
+  return cs.p.techniques.includes(t) && cs.p.sei >= TECH_COST[t] && !cs.finished;
+}
+
 function resolvePair(c: Ctx, pm: Move, om: Move) {
   const key = `${pm}-${om}`;
   switch (key) {
@@ -287,14 +387,27 @@ function applyCost(f: Fighter, m: Move) {
 }
 
 /** 结算一个回合。返回新状态（不修改入参）。 */
-export function resolveRound(prev: CombatState, pMove: Move): CombatState {
+export function resolveRound(prev: CombatState, pMoveIn: Move, pTechIn?: TechId): CombatState {
   if (prev.finished) return prev;
   const cs: CombatState = structuredClone(prev);
+  const pTech = pTechIn && canUseTech(cs, pTechIn) ? pTechIn : undefined;
+  const pMove = pTech ? TECH_BASE[pTech] : pMoveIn;
   const oMove = cs.oppNext;
+  const oTech = cs.oppTech && cs.o.sei >= TECH_COST[cs.oppTech] ? cs.oppTech : undefined;
   const revealed = cs.reveal;
-  const c: Ctx = { cs, lines: [], scorer: null, revealNext: false, readNext: false };
+  const c: Ctx = { cs, lines: [], scorer: null, revealNext: false, readNext: false, bonus: { p: 0, o: 0 } };
+  if (pTech) cs.p.sei -= TECH_COST[pTech];
+  if (oTech) cs.o.sei -= TECH_COST[oTech];
 
-  resolvePair(c, pMove, oMove);
+  if (!resolveTech(c, pMove, oMove, pTech, oTech)) resolvePair(c, pMove, oMove);
+
+  // 势：防守 +1，看破对手 +1，被取一本 +2
+  if (pMove === 'def' && !pTech) gainSei(cs.p, 1);
+  if (oMove === 'def' && !oTech) gainSei(cs.o, 1);
+  if (c.revealNext) gainSei(cs.p, 1);
+  if (c.readNext) gainSei(cs.o, 1);
+  if (c.scorer === 'o') gainSei(cs.p, 2);
+  if (c.scorer === 'p') gainSei(cs.o, 2);
 
   applyCost(cs.p, pMove);
   applyCost(cs.o, oMove);
@@ -324,6 +437,8 @@ export function resolveRound(prev: CombatState, pMove: Move): CombatState {
   }
 
   const rec: RoundRecord = { round: cs.round, pMove, oMove, lines: c.lines, scorer: c.scorer, revealed };
+  if (pTech) rec.pTech = pTech;
+  if (oTech) rec.oTech = oTech;
   cs.history.push(rec);
 
   // 胜负判定
@@ -346,7 +461,7 @@ export function resolveRound(prev: CombatState, pMove: Move): CombatState {
     cs.round += 1;
     cs.reveal = c.revealNext;
     cs.oppRead = c.readNext ? 1 : 0;
-    cs.oppNext = weighted(cs, opponentWeights(cs));
+    pickOpp(cs);
   } else {
     cs.reveal = false;
   }

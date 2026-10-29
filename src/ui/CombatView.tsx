@@ -1,7 +1,8 @@
 import { makeHint } from '../engine/combat/hint';
 import { describeState, previewMove } from '../engine/combat/rules';
 import type { Fighter, Move } from '../engine/combat/types';
-import { MOVE_LABEL } from '../engine/combat/types';
+import { ACTIVE_TECHS, MAX_SEI, MOVE_LABEL, TECH_BASE, TECH_COST, type TechId } from '../engine/combat/types';
+import { canUseTech, TECH_NAME } from '../engine/combat/rules';
 import { canQuickFinish, closeBout, forfeitBout, playMove, quickFinish } from '../engine/game';
 import { REG } from '../engine/registry';
 import type { GameState, NpcId } from '../engine/types';
@@ -48,6 +49,12 @@ function FighterPanel({ f, target, glyph, color, side, hit, round, pid }: { f: F
           ))}
           <span className="pst-name">{POSTURE[f.posture]}</span>
         </div>
+        <div className="sei" aria-label={`势 ${f.sei}/${MAX_SEI}`}>
+          <span className="meter-label">势</span>
+          {Array.from({ length: MAX_SEI }).map((_, i) => (
+            <span key={i} className={`sei-pip ${i < f.sei ? 'on' : ''}`} />
+          ))}
+        </div>
         </div>
       </div>
     </div>
@@ -62,6 +69,7 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
   const hint = makeHint(cs, opp, knowledge);
   const last = cs.history[cs.history.length - 1];
   const moves: Move[] = ['atk', 'def', 'probe', 'adjust'];
+  const techs = ACTIVE_TECHS.filter((t) => cs.p.techniques.includes(t)) as TechId[];
 
   return (
     <div className="overlay combat" role="dialog" aria-label={context.label}>
@@ -121,7 +129,7 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
       {last && (
         <div className={`exchange ${last.scorer ? `scored-${last.scorer}` : ''}`} key={cs.history.length}>
           <div className="ex-moves">
-            你【{MOVE_LABEL[last.pMove]}】 对 {cs.o.name}【{MOVE_LABEL[last.oMove]}】
+            你【{last.pTech ? TECH_NAME[last.pTech] : MOVE_LABEL[last.pMove]}】 对 {cs.o.name}【{last.oTech ? TECH_NAME[last.oTech] : MOVE_LABEL[last.oMove]}】
           </div>
           {last.lines.map((l, i) => (
             <p key={i}>{l}</p>
@@ -142,6 +150,16 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
               )}
             </div>
           </div>
+          {techs.length > 0 && (
+            <div className="techs-row">
+              {techs.map((t) => (
+                <button key={t} className={`tech-btn ${canUseTech(cs, t) ? 'ready' : ''}`} disabled={!canUseTech(cs, t)} onClick={() => apply((g) => playMove(g, TECH_BASE[t], t))}>
+                  <span className="tech-name">{TECH_NAME[t]}</span>
+                  <span className="tech-cost">势 {TECH_COST[t]}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="moves">
             {moves.map((m) => (
               <button key={m} className={`move m-${m} ${hint.certain && hint.certain !== m ? '' : ''}`} onClick={() => apply((g) => playMove(g, m))}>

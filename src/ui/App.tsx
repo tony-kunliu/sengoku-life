@@ -160,7 +160,7 @@ export function App() {
       <main className="main">
         {tab === 'map' && <MapScreen s={g} apply={apply} />}
         {tab === 'people' && <PeopleScreen s={g} apply={apply} />}
-        {tab === 'train' && <TrainScreen s={g} />}
+        {tab === 'train' && <TrainScreen s={g} apply={apply} />}
         {tab === 'log' && <LogScreen s={g} setG={(s) => { setG(s); writeSlot('auto', s); }} toTitle={() => setG(null)} />}
       </main>
 

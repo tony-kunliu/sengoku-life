@@ -19,6 +19,14 @@ export const DISTANCE_LABEL = ['远间', '一足一刀', '近间'] as const;
 
 export type Side = 'p' | 'o';
 
+/** 主动秘传：消耗“势”发动 */
+export type TechId = 'nidan' | 'sasoi' | 'zanshin';
+export const TECH_COST: Record<TechId, number> = { nidan: 3, sasoi: 2, zanshin: 4 };
+/** 秘传以哪种基础行动为底（决定气力消耗与对手的克制关系） */
+export const TECH_BASE: Record<TechId, Move> = { nidan: 'atk', sasoi: 'probe', zanshin: 'def' };
+export const ACTIVE_TECHS: TechId[] = ['nidan', 'sasoi', 'zanshin'];
+export const MAX_SEI = 5;
+
 export type AiStyle = 'aggressive' | 'cautious' | 'adaptive' | 'master';
 
 export interface Fighter {
@@ -33,12 +41,16 @@ export interface Fighter {
   points: number;
   techniques: string[];
   weapon: number;
+  /** 势：防守、被击中、看破对手时积累，用来发动秘传 */
+  sei: number;
 }
 
 export interface RoundRecord {
   round: number;
   pMove: Move;
   oMove: Move;
+  pTech?: TechId;
+  oTech?: TechId;
   lines: string[];
   scorer: Side | null;
   /** 本回合开始时对手意图是否已被看破 */
@@ -58,6 +70,8 @@ export interface CombatState {
   style: AiStyle;
   /** 对手已决定的下一手（对玩家隐藏，除非看破） */
   oppNext: Move;
+  /** 对手下一手是否为秘传 */
+  oppTech: TechId | null;
   /** 玩家是否已看破对手下一手 */
   reveal: boolean;
   /** 对手看破玩家：下一回合对手威力 +1 */

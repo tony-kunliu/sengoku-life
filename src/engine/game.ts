@@ -1,7 +1,7 @@
 // 游戏规则引擎：所有对外操作都是 (state, 参数) => 新 state 的纯函数。
 import { createCombat, resolveRound } from './combat/rules';
 import { gradeTest } from './combat/hint';
-import type { Move } from './combat/types';
+import type { Move, TechId } from './combat/types';
 import { clone, doneToday, log, markToday, meet, rel, remember, setStance, toast } from './core';
 import { OKEHAZAMA_DAY, SLOT_LABEL, dateLabel } from './calendar';
 import { REG, type Choice, type Effect, type SceneNode, type Txt } from './registry';
@@ -60,8 +60,9 @@ export function applyEffect(s: GameState, e: Effect) {
     case 'tech':
       if (!s.player.techniques.includes(e.id)) {
         s.player.techniques.push(e.id);
+        if (s.player.equipped.length < MAX_EQUIP) s.player.equipped.push(e.id);
         log(s, `习得技法：${TECH_NAMES[e.id] ?? e.id}`, 'growth');
-        toast(s, `习得【${TECH_NAMES[e.id] ?? e.id}】`);
+        toast(s, `习得【${TECH_NAMES[e.id] ?? e.id}】${s.player.equipped.includes(e.id) ? '' : '（携带已满，可在修行页更换）'}`);
       }
       break;
     case 'time':
@@ -117,12 +118,34 @@ export const TECH_NAMES: Record<string, string> = {
   yanagi: '柳返',
   fumikomi: '踏入',
   mikiri: '见切',
+  nidan: '二段',
+  sasoi: '诱',
+  zanshin: '残心',
 };
+
+/** 比试时最多携带的技法数（被动与秘传合计） */
+export const MAX_EQUIP = 3;
+
+/** 换上 / 卸下一项技法 */
+export function toggleEquip(prev: GameState, id: string): GameState {
+  if (prev.bout || !prev.player.techniques.includes(id)) return prev;
+  const s = clone(prev);
+  s.toast = [];
+  const eq = s.player.equipped;
+  const i = eq.indexOf(id);
+  if (i >= 0) eq.splice(i, 1);
+  else if (eq.length < MAX_EQUIP) eq.push(id);
+  else return prev;
+  return s;
+}
 
 export const TECH_DESC: Record<string, string> = {
   yanagi: '防守时，只要守备不低于来刀且架势未崩，就能卸力反击。',
   fumikomi: '远间进攻不再吃亏。',
   mikiri: '眼力视为高一级，对手的意图更容易看清。',
+  nidan: '秘传 · 势 3：进攻。被格挡时仍会补上第二刀（威力 +2，超过守备即得分）。',
+  sasoi: '秘传 · 势 2：试探。对手若进攻，你侧身让过并反击；对手若试探，你必占上风。',
+  zanshin: '秘传 · 势 4：防守。来刀几乎必被反击取分；对手不攻，则看穿其下一手。',
 };
 
 // ───────────────────────── 时间 ─────────────────────────
@@ -319,14 +342,14 @@ export function checkTriggers(s: GameState) {
 
 export function playerCombatStats(s: GameState) {
   const p = s.player;
-  const mikiri = p.techniques.includes('mikiri') ? 1 : 0;
+  const mikiri = p.equipped.includes('mikiri') ? 1 : 0;
   return {
     name: p.name,
     atk: p.stats.atk.lv,
     def: p.stats.def.lv,
     eye: p.stats.eye.lv + mikiri,
     maxStamina: p.maxStamina,
-    techniques: p.techniques,
+    techniques: p.equipped,
     weapon: p.weapon,
   };
 }
@@ -340,11 +363,11 @@ export function startBout(s: GameState, opp: string, ctx: BoutContext, rounds?: 
   s.bout = { combat, context: ctx };
 }
 
-export function playMove(prev: GameState, m: Move): GameState {
+export function playMove(prev: GameState, m: Move, tech?: TechId): GameState {
   if (!prev.bout || prev.bout.combat.finished) return prev;
   const s = clone(prev);
   s.toast = [];
-  s.bout!.combat = resolveRound(s.bout!.combat, m);
+  s.bout!.combat = resolveRound(s.bout!.combat, m, tech);
   s.rngState = s.bout!.combat.rng;
   return s;
 }

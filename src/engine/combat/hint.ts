@@ -1,7 +1,8 @@
 // “气配”提示：情报等级越高，越能看出对手的意图。
 import { opponentWeights, weightsToProbs } from './ai';
 import type { CombatState, Move, OpponentDef } from './types';
-import { MOVE_LABEL } from './types';
+import { MOVE_LABEL, TECH_COST } from './types';
+import { TECH_NAME } from './rules';
 
 export interface Hint {
   level: number;
@@ -13,16 +14,19 @@ export interface Hint {
 
 export function makeHint(cs: CombatState, opp: OpponentDef, knowledge: number): Hint {
   if (cs.reveal) {
+    const tech = cs.oppTech ? `【${TECH_NAME[cs.oppTech]}】（${MOVE_LABEL[cs.oppNext]}）` : `【${MOVE_LABEL[cs.oppNext]}】`;
     return {
       level: 4,
       certain: cs.oppNext,
-      text: `看破！${opp.tells[cs.oppNext]}——下一手必是【${MOVE_LABEL[cs.oppNext]}】。`,
+      text: `看破！${opp.tells[cs.oppNext]}——下一手必是${tech}。`,
     };
   }
   const level = Math.min(3, knowledge + (cs.p.eye >= 3 ? 1 : 0));
   const probs = Object.entries(weightsToProbs(opponentWeights(cs)))
     .map(([move, p]) => ({ move: move as Move, p }))
     .sort((a, b) => b.p - a.p);
+  const warn = cs.o.techniques.includes('nidan') && cs.o.sei >= TECH_COST.nidan ? '气势逼人：对手的进攻会是【二段】，光挡不够。' : '';
+  if (warn && level >= 1) return { level, text: warn, probs: level >= 3 ? probs.slice(0, 3) : undefined };
   if (level <= 0) {
     return { level, text: '看不透对方的心思。（输一次、在道场观摩或向熟人打听，都能了解其习惯）' };
   }

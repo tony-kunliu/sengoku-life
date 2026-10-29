@@ -3,8 +3,10 @@ import { buildContext, dialogue } from '../ai/dialogue';
 import { SLOT_LABEL, dateLabel, fullDateLabel } from '../engine/calendar';
 import { R } from '../engine/core';
 import {
+  MAX_EQUIP,
   TECH_DESC,
   TECH_NAMES,
+  toggleEquip,
   actionLock,
   actionsHere,
   isNpcHere,
@@ -365,7 +367,7 @@ function NpcDetail({ s, id }: { s: GameState; id: NpcId }) {
 }
 
 // ───────────────────────── 修行 ─────────────────────────
-export function TrainScreen({ s }: { s: GameState }) {
+export function TrainScreen({ s, apply }: { s: GameState; apply: Apply }) {
   const p = s.player;
   const base: Record<StatKey, number> = { atk: 30, def: 30, eye: 22 };
   return (
@@ -453,14 +455,26 @@ export function TrainScreen({ s }: { s: GameState }) {
         {p.techniques.length === 0 ? (
           <p className="muted">尚未习得任何技法。获得师父认可、与人结下交情，都可能学到新东西。</p>
         ) : (
-          <ul className="techs">
-            {p.techniques.map((t) => (
-              <li key={t}>
-                <strong>{TECH_NAMES[t]}</strong>
-                <span>{TECH_DESC[t]}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="muted">比试时最多携带 {MAX_EQUIP} 项（已携带 {p.equipped.length}）。点按切换，按对手搭配。</p>
+            <ul className="techs">
+              {p.techniques.map((t) => {
+                const on = p.equipped.includes(t);
+                const full = !on && p.equipped.length >= MAX_EQUIP;
+                return (
+                  <li key={t}>
+                    <button className={`tech-toggle ${on ? 'on' : ''}`} disabled={full} onClick={() => apply((g) => toggleEquip(g, t))} aria-pressed={on}>
+                      <span className="tech-check">{on ? '携' : full ? '满' : '　'}</span>
+                      <span className="tech-body">
+                        <strong>{TECH_NAMES[t]}</strong>
+                        <span>{TECH_DESC[t]}</span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </section>
 
