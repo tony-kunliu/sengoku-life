@@ -4,6 +4,8 @@
 
 ## 怎么玩
 
+**在线试玩：https://tony-kunliu.github.io/sengoku-life/** （iPhone 用 Safari 打开，分享 → 添加到主屏幕即可像 App 一样使用）
+
 - **GitHub Pages**：推送到 `main` 后，Actions 会自动测试、构建并发布（需在仓库 Settings → Pages 把 Source 设为 GitHub Actions，仓库需为 Public 或使用付费方案）。
 
 - **iPhone**：直接打开发布的 Artifact 链接即可游玩；或把 `dist/index.html` 部署到任何静态网站（Netlify / GitHub Pages / Cloudflare Pages），用 Safari 打开后“添加到主屏幕”即为 PWA。
