@@ -909,3 +909,30 @@ small { font-size: 0.8em; }
 .style-opt small { color: var(--ink-soft); }
 .style-opt.on { border-color: var(--vermilion); box-shadow: inset 0 0 0 1px var(--vermilion); }
 .style-opt.on strong { color: var(--vermilion); }
+
+/* ═════════════ 人物立绘 ═════════════ */
+.portrait {
+  flex: none;
+  display: block;
+  border: 2px solid #2a1d14;
+  border-radius: 3px;
+  outline: 1px solid rgba(197, 157, 72, 0.85);
+  outline-offset: 1px;
+  background: #c59d48;
+}
+.portrait.unknown { filter: grayscale(1) brightness(0.32) contrast(1.1); }
+.scroll-paper .speaker { align-items: flex-end; gap: 14px; }
+.scene-bust {
+  margin-top: -78px;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 6px 18px rgba(20, 16, 12, 0.35);
+  animation: bustIn 0.4s ease-out both;
+}
+@keyframes bustIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.scroll-paper .speaker strong { font-size: 1.1rem; }
+.talk-speaker { align-items: flex-end; }
+.npc-detail .speaker { align-items: flex-end; }
+.fighter .portrait { border-width: 1.5px; }
+.seal-wrap.hit .portrait { outline-color: var(--vermilion); }
+.scene-title { font-size: 1.45rem; white-space: nowrap; }

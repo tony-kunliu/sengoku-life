@@ -2,7 +2,8 @@ import { choose, currentNode, txt, visibleChoices } from '../engine/game';
 import { REG } from '../engine/registry';
 import type { GameState } from '../engine/types';
 import type { Apply } from './App';
-import { SceneArt, Seal } from './art';
+import { SceneArt } from './art';
+import { CharPortrait } from './portrait';
 
 export function SceneView({ s, apply }: { s: GameState; apply: Apply }) {
   const def = REG.scenes[s.scene!.id];
@@ -22,7 +23,7 @@ export function SceneView({ s, apply }: { s: GameState; apply: Apply }) {
       <div className="scroll-paper" key={`${s.scene!.id}-${s.scene!.node}`}>
         {npc && (
           <div className="speaker">
-            <Seal glyph={npc.glyph} color={npc.color} size={46} />
+            <CharPortrait id={npc.id} size={92} crop="bust" className="scene-bust" unknown={!s.npcs[npc.id].rel.met && npc.id !== 'nobunaga'} />
             <div>
               <strong>{s.npcs[npc.id].rel.met || npc.id === 'nobunaga' ? npc.name : '？？？'}</strong>
               <small>{npc.role}</small>
@@ -31,7 +32,7 @@ export function SceneView({ s, apply }: { s: GameState; apply: Apply }) {
         )}
         {sp === 'player' && (
           <div className="speaker">
-            <Seal glyph={s.player.name.slice(0, 1)} color="#1f2a44" size={46} />
+            <CharPortrait id="player" size={92} crop="bust" className="scene-bust" />
             <div>
               <strong>{s.player.name}</strong>
               <small>心中所想</small>

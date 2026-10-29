@@ -1,0 +1,11 @@
+import { build } from 'esbuild';
+import { chromium } from 'playwright';
+const out = process.argv[2];
+const r = await build({ entryPoints: ['scripts/portrait-gallery.tsx'], bundle: true, write: false, jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1300, height: 900 }, deviceScaleFactor: 1 });
+await p.setContent('<div id="root"></div>');
+await p.addScriptTag({ content: r.outputFiles[0].text });
+await p.waitForTimeout(300);
+await p.screenshot({ path: out, fullPage: true });
+await b.close();

@@ -6,7 +6,7 @@ import { closeBout, forfeitBout, playMove } from '../engine/game';
 import { REG } from '../engine/registry';
 import type { GameState, NpcId } from '../engine/types';
 import type { Apply } from './App';
-import { Seal } from './art';
+import { CharPortrait } from './portrait';
 import { Hajime, StrikeFx } from './fx';
 
 const MOVE_GLYPH: Record<Move, string> = { atk: '攻', def: '守', probe: '探', adjust: '整' };
@@ -18,11 +18,11 @@ const MOVE_HINT: Record<Move, string> = {
 };
 const POSTURE = ['崩', '乱', '稳', '固', '盛'];
 
-function FighterPanel({ f, target, glyph, color, side, hit, round }: { f: Fighter; target: number; glyph: string; color: string; side: 'p' | 'o'; hit?: boolean; round: number }) {
+function FighterPanel({ f, target, glyph, color, side, hit, round, pid }: { f: Fighter; target: number; glyph: string; color: string; pid: string; side: 'p' | 'o'; hit?: boolean; round: number }) {
   return (
     <div className={`fighter ${side}`}>
       <span className={`seal-wrap ${hit ? 'hit' : ''}`} key={round}>
-        <Seal glyph={glyph} color={color} size={42} />
+        <CharPortrait id={pid} size={46} />
       </span>
       <div className="f-body">
         <div className="f-name">
@@ -86,6 +86,7 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
         glyph={npc?.glyph ?? '敌'}
         color={npc?.color ?? '#5a3a2a'}
         side="o"
+        pid={cs.oppId}
         hit={last?.scorer === 'p'}
       />
 
@@ -108,6 +109,7 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
         glyph={s.player.name.slice(0, 1)}
         color="#1f2a44"
         side="p"
+        pid="player"
         hit={last?.scorer === 'o'}
       />
 

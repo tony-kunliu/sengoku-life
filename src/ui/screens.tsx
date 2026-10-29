@@ -20,7 +20,8 @@ import { deleteSlot, fromCode, readMeta, readSlot, storageAvailable, toCode, wri
 import { STAT_FULL, nextRepGain } from '../engine/training';
 import type { GameState, LocationId, NpcId, Stance, StatKey } from '../engine/types';
 import type { Apply } from './App';
-import { SceneArt, Seal } from './art';
+import { SceneArt } from './art';
+import { CharPortrait } from './portrait';
 
 const STANCE: Record<Stance, string> = {
   stranger: '未相识',
@@ -86,7 +87,7 @@ export function MapScreen({ s, apply }: { s: GameState; apply: Apply }) {
             const met = s.npcs[id].rel.met;
             return (
               <button key={id} className="person" onClick={() => { apply((g) => talk(g, id)); setTalkNpc(id); }}>
-                <Seal glyph={n.glyph} color={n.color} size={44} />
+                <CharPortrait id={id} size={44} unknown={!met} />
                 <span className="person-text">
                   <strong>{met ? n.name : '陌生人'}</strong>
                   <small>{n.where(s).doing}</small>
@@ -142,8 +143,8 @@ function TalkSheet({ s, npc, onClose }: { s: GameState; npc: NpcId; onClose: () 
   return (
     <div className="sheet-back" onClick={onClose}>
       <div className="sheet" onClick={(e: Event) => e.stopPropagation()} role="dialog" aria-label={`与${n.name}交谈`}>
-        <div className="speaker">
-          <Seal glyph={n.glyph} color={n.color} size={52} />
+        <div className="speaker talk-speaker">
+          <CharPortrait id={npc} size={96} crop="bust" />
           <div>
             <strong>{n.name}</strong>
             <small>{STANCE[r.stance]} · {n.status(s)}</small>
@@ -204,7 +205,7 @@ export function PeopleScreen({ s }: { s: GameState; apply: Apply }) {
           return (
             <li key={id}>
               <button className="npc-card" disabled={!met} onClick={() => setOpen(id)}>
-                <Seal glyph={met ? n.glyph : '？'} color={n.color} size={50} dim={!met} />
+                <CharPortrait id={id} size={50} unknown={!met} />
                 <span className="npc-main">
                   <strong>
                     {met ? n.name : '尚未相识'}
@@ -243,7 +244,7 @@ function NpcDetail({ s, id }: { s: GameState; id: NpcId }) {
   return (
     <div className="npc-detail">
       <div className="speaker">
-        <Seal glyph={n.glyph} color={n.color} size={60} />
+        <CharPortrait id={id} size={120} crop="bust" />
         <div>
           <strong>{n.name}</strong>
           <small>
@@ -287,7 +288,7 @@ export function TrainScreen({ s }: { s: GameState }) {
     <div className="screen pad">
       <h1 className="page-title">修行</h1>
       <div className="me">
-        <Seal glyph={p.name.slice(0, 1)} color="#1f2a44" size={56} />
+        <CharPortrait id="player" size={56} />
         <div>
           <strong>{p.name}</strong>
           <small>
