@@ -10,6 +10,10 @@ import { EndingView } from './EndingView';
 import { SceneView } from './SceneView';
 import { LogScreen, MapScreen, PeopleScreen, TrainScreen } from './screens';
 import { TitleView } from './TitleView';
+import { audio } from '../audio/engine';
+import { cuesFor, intensityFor, themeFor } from '../audio/cues';
+import { DayCard, Fusuma } from './fx';
+import { SoundButton, SoundSheet } from './SoundSheet';
 
 export type Tab = 'map' | 'people' | 'train' | 'log';
 export type Apply = (fn: (s: GameState) => GameState) => void;
@@ -26,6 +30,32 @@ export function App() {
   const [tab, setTabRaw] = useState<Tab>('map');
   const [saveOk, setSaveOk] = useState(true);
   const tabRef = useRef<Tab>('map');
+  const prevRef = useRef<GameState | null>(null);
+  const [dayCard, setDayCard] = useState<number | null>(null);
+  const [soundOpen, setSoundOpen] = useState(false);
+
+  // 第一次触碰屏幕时解锁音频（iOS 要求必须由用户手势启动）
+  useEffect(() => {
+    const unlock = () => {
+      if (!audio.ready) audio.unlock();
+    };
+    document.addEventListener('pointerdown', unlock, { passive: true });
+    document.addEventListener('keydown', unlock);
+    return () => {
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
+  // 状态变化 → 配乐、音效、日替转场
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = g;
+    audio.setTheme(themeFor(g));
+    audio.setIntensity(intensityFor(g));
+    for (const c of cuesFor(prev, g)) audio.sfx(c);
+    if (prev && g && g.day > prev.day && !g.ended) setDayCard(g.day);
+  }, [g]);
 
   // 浏览器返回键：在页签之间后退，而不是离开游戏
   useEffect(() => {
@@ -47,6 +77,7 @@ export function App() {
 
   const setTab = (t: Tab) => {
     if (t === tabRef.current) return;
+    audio.sfx('tab');
     tabRef.current = t;
     setTabRaw(t);
     try {
@@ -82,6 +113,8 @@ export function App() {
   if (!g) {
     return (
       <TitleView
+        onSound={() => setSoundOpen(true)}
+        soundSheet={soundOpen ? <SoundSheet theme="title" onClose={() => setSoundOpen(false)} /> : null}
         meta={readMeta('auto')}
         onContinue={() => {
           const s = readSlot('auto');
@@ -104,6 +137,8 @@ export function App() {
 
   if (g.ended) return <EndingView s={g} onTitle={() => setG(null)} />;
 
+  const sceneKey = g.bout ? `bout-${g.bout.context.label}-${g.record.bouts}` : g.scene ? `scene-${g.scene.id}` : '';
+
   const left = daysUntilOkehazama(g.day);
 
   return (
@@ -116,6 +151,7 @@ export function App() {
         <div className="purse">
           <span title="钱">{g.player.money} 文</span>
           <span title="名声">名 {g.player.fame}</span>
+          <SoundButton onClick={() => setSoundOpen(true)} />
         </div>
       </header>
 
@@ -149,6 +185,9 @@ export function App() {
 
       {g.scene && !g.bout && <SceneView s={g} apply={apply} />}
       {g.bout && <CombatView s={g} apply={apply} />}
+      {sceneKey && <Fusuma key={sceneKey} />}
+      {dayCard && <DayCard day={dayCard} onDone={() => setDayCard(null)} />}
+      {soundOpen && <SoundSheet theme={themeFor(g)} onClose={() => setSoundOpen(false)} />}
     </div>
   );
 }

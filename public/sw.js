@@ -1,5 +1,5 @@
 // 极简离线缓存：首次访问后可离线游玩
-const CACHE = 'sengoku-life-v1';
+const CACHE = "sengoku-life-v2";
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])));
   self.skipWaiting();

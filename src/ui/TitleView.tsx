@@ -1,18 +1,32 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { SoundButton } from './SoundSheet';
 import { dateLabel } from '../engine/calendar';
 import type { SaveMeta } from '../engine/save';
 import { TitleArt } from './art';
 
-export function TitleView({ meta, onContinue, onNew }: { meta: SaveMeta | null; onContinue: () => void; onNew: (name: string) => void }) {
+export function TitleView({
+  meta,
+  onContinue,
+  onNew,
+  onSound,
+  soundSheet,
+}: {
+  meta: SaveMeta | null;
+  onContinue: () => void;
+  onNew: (name: string) => void;
+  onSound: () => void;
+  soundSheet: ReactNode;
+}) {
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
   return (
     <div className="title-screen">
       <TitleArt />
+      <SoundButton className="title-sound" onClick={onSound} />
       <div className="title-inner">
         <h1 className="game-title" aria-label="战国浮生录">
-          <span>战国</span>
-          <span>浮生录</span>
+          <span className="brush-in">战国</span>
+          <span className="brush-in b2">浮生录</span>
         </h1>
         <p className="title-sub">第一章 · 乱世来客</p>
         <p className="title-lede">永禄三年，尾张清洲。距离桶狭间，还有十六日。</p>
@@ -59,6 +73,7 @@ export function TitleView({ meta, onContinue, onNew }: { meta: SaveMeta | null; 
           </form>
         )}
       </div>
+      {soundSheet}
     </div>
   );
 }

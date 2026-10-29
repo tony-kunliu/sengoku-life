@@ -7,6 +7,7 @@ import { REG } from '../engine/registry';
 import type { GameState, NpcId } from '../engine/types';
 import type { Apply } from './App';
 import { Seal } from './art';
+import { Hajime, StrikeFx } from './fx';
 
 const MOVE_GLYPH: Record<Move, string> = { atk: '攻', def: '守', probe: '探', adjust: '整' };
 const MOVE_HINT: Record<Move, string> = {
@@ -17,10 +18,12 @@ const MOVE_HINT: Record<Move, string> = {
 };
 const POSTURE = ['崩', '乱', '稳', '固', '盛'];
 
-function FighterPanel({ f, target, glyph, color, side }: { f: Fighter; target: number; glyph: string; color: string; side: 'p' | 'o' }) {
+function FighterPanel({ f, target, glyph, color, side, hit, round }: { f: Fighter; target: number; glyph: string; color: string; side: 'p' | 'o'; hit?: boolean; round: number }) {
   return (
     <div className={`fighter ${side}`}>
-      <Seal glyph={glyph} color={color} size={42} />
+      <span className={`seal-wrap ${hit ? 'hit' : ''}`} key={round}>
+        <Seal glyph={glyph} color={color} size={42} />
+      </span>
       <div className="f-body">
         <div className="f-name">
           <strong>{f.name}</strong>
@@ -76,7 +79,15 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
         </span>
       </div>
 
-      <FighterPanel f={cs.o} target={cs.target} glyph={npc?.glyph ?? '敌'} color={npc?.color ?? '#5a3a2a'} side="o" />
+      <FighterPanel
+        round={cs.history.length}
+        f={cs.o}
+        target={cs.target}
+        glyph={npc?.glyph ?? '敌'}
+        color={npc?.color ?? '#5a3a2a'}
+        side="o"
+        hit={last?.scorer === 'p'}
+      />
 
       <div className="field" aria-label={describeState(cs)}>
         <div className={`distance d${cs.distance}`}>
@@ -90,7 +101,15 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
         </div>
       </div>
 
-      <FighterPanel f={cs.p} target={cs.target} glyph={s.player.name.slice(0, 1)} color="#1f2a44" side="p" />
+      <FighterPanel
+        round={cs.history.length}
+        f={cs.p}
+        target={cs.target}
+        glyph={s.player.name.slice(0, 1)}
+        color="#1f2a44"
+        side="p"
+        hit={last?.scorer === 'o'}
+      />
 
       {last && (
         <div className={`exchange ${last.scorer ? `scored-${last.scorer}` : ''}`} key={cs.history.length}>
@@ -129,7 +148,7 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
         </>
       ) : (
         <div className={`result r-${cs.result}`}>
-          <h2>{cs.result === 'win' ? '胜' : cs.result === 'lose' ? '败' : '平'}</h2>
+          <h2 className="ink-char">{cs.result === 'win' ? '胜' : cs.result === 'lose' ? '败' : '平'}</h2>
           <p>
             {cs.p.points} 本 对 {cs.o.points} 本
           </p>
@@ -143,6 +162,8 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
           </button>
         </div>
       )}
+      {last && <StrikeFx key={`fx${cs.history.length}`} rec={last} />}
+      {cs.history.length === 0 && <Hajime />}
     </div>
   );
 }

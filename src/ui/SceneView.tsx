@@ -40,7 +40,9 @@ export function SceneView({ s, apply }: { s: GameState; apply: Apply }) {
         )}
         <div className={`scene-text ${sp === 'narrator' ? 'narr' : ''} ${sp === 'player' ? 'inner' : ''}`}>
           {text.split('\n\n').map((p, i) => (
-            <p key={i}>{p}</p>
+            <p key={i} className="ink-p" style={{ animationDelay: `${0.12 + i * 0.32}s` }}>
+              {p}
+            </p>
           ))}
         </div>
       </div>

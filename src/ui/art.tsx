@@ -24,6 +24,36 @@ function Defs({ id }: { id: string }) {
   );
 }
 
+function Mist({ id, y, o = 0.5 }: { id: string; y: number; o?: number }) {
+  return (
+    <g filter={`url(#soft-${id})`} opacity={o} className="mist-drift">
+      <ellipse cx="80" cy={y} rx="120" ry="9" fill="#f4efe4" />
+      <ellipse cx="330" cy={y + 8} rx="140" ry="8" fill="#f4efe4" />
+      <ellipse cx="560" cy={y - 4} rx="120" ry="9" fill="#f4efe4" />
+    </g>
+  );
+}
+
+function Birds({ x, y }: { x: number; y: number }) {
+  return (
+    <g className="birds" fill="none" stroke="#2a2622" strokeWidth="1.4" strokeLinecap="round">
+      <path d={`M${x} ${y} q4 -4 8 0 q4 -4 8 0`} />
+      <path d={`M${x + 22} ${y + 8} q3 -3 6 0 q3 -3 6 0`} />
+      <path d={`M${x + 10} ${y + 16} q3 -3 6 0 q3 -3 6 0`} />
+    </g>
+  );
+}
+
+function Smoke({ x, y, delay = 0 }: { x: number; y: number; delay?: number }) {
+  return (
+    <g className="smoke" style={{ animationDelay: `${delay}s` }}>
+      <circle cx={x} cy={y} r="5" fill="#8b8680" opacity="0.35" />
+      <circle cx={x + 3} cy={y - 10} r="7" fill="#8b8680" opacity="0.25" />
+      <circle cx={x - 2} cy={y - 22} r="9" fill="#8b8680" opacity="0.15" />
+    </g>
+  );
+}
+
 function Mountains({ id, y = 120, tone = 0.25 }: { id: string; y?: number; tone?: number }) {
   return (
     <g filter={`url(#soft-${id})`} opacity={tone}>
@@ -57,7 +87,17 @@ function Town({ id }: { id: string }) {
       </g>
       {/* 五条川 */}
       <path d="M0 182 Q100 172 200 184 T400 178 V200 H0Z" fill="#41506e" opacity="0.35" />
-      <circle cx="70" cy="40" r="14" fill="#b5361f" opacity="0.75" />
+      <g className="shimmer" stroke="#efe8da" strokeWidth="1.2" opacity="0.6">
+        <line x1="30" y1="190" x2="60" y2="190" />
+        <line x1="150" y1="193" x2="190" y2="193" />
+        <line x1="260" y1="189" x2="285" y2="189" />
+        <line x1="330" y1="195" x2="370" y2="195" />
+      </g>
+      <Smoke x={50} y={130} />
+      <Smoke x={218} y={124} delay={2.2} />
+      <Mist id={id} y={104} o={0.55} />
+      <circle cx="70" cy="40" r="14" fill="#b5361f" opacity="0.75" className="sun-breathe" />
+      <Birds x={120} y={40} />
     </g>
   );
 }
@@ -93,6 +133,22 @@ function Dojo({ id }: { id: string }) {
         <circle cx="241" cy="98" r="7" />
         <line x1="234" y1="112" x2="204" y2="96" stroke={INK} strokeWidth="3" />
       </g>
+      {/* 光柱与尘埃 */}
+      <g className="shafts">
+        <polygon points="300,28 330,28 290,154 250,154" fill="#fff8e6" opacity="0.18" />
+        <polygon points="340,28 352,28 320,154 300,154" fill="#fff8e6" opacity="0.12" />
+      </g>
+      {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+        <circle
+          key={`m${i}`}
+          className="mote"
+          cx={262 + ((i * 13) % 50)}
+          cy={60 + ((i * 29) % 80)}
+          r="1.3"
+          fill="#fff8e6"
+          style={{ animationDelay: `${i * 0.9}s` }}
+        />
+      ))}
       {/* 木刀架 */}
       {[0, 1, 2, 3].map((i) => (
         <line key={`b${i}`} x1={60 + i * 8} y1="90" x2={56 + i * 8} y2="148" stroke="#5b4a3a" strokeWidth="3" />
@@ -112,19 +168,31 @@ function Teahouse({ id }: { id: string }) {
         <rect x="60" y="70" width="280" height="8" fill={INK} opacity="0.5" />
         {/* 暖帘 */}
         {[0, 1, 2].map((i) => (
-          <rect key={i} x={140 + i * 42} y="80" width="38" height="56" fill="#2f4a6b" opacity="0.92" />
+          <rect
+            key={i}
+            className="noren"
+            style={{ animationDelay: `${i * 0.35}s` }}
+            x={140 + i * 42}
+            y="80"
+            width="38"
+            height="56"
+            fill="#2f4a6b"
+            opacity="0.92"
+          />
         ))}
         <text x="203" y="118" textAnchor="middle" fontSize="26" fontFamily="'Zhi Mang Xing','Ma Shan Zheng',serif" fill="#efe8da">
           水 月
         </text>
         {/* 灯笼 */}
-        <ellipse cx="100" cy="102" rx="12" ry="16" fill="#b5361f" opacity="0.9" />
+        <ellipse cx="100" cy="102" rx="20" ry="24" fill="#e8a33a" opacity="0.18" className="lantern-glow" />
+        <ellipse cx="100" cy="102" rx="12" ry="16" fill="#b5361f" opacity="0.9" className="lantern" />
         <line x1="100" y1="80" x2="100" y2="86" stroke={INK} strokeWidth="2" />
         {/* 长凳 */}
         <rect x="240" y="160" width="90" height="8" fill="#b5361f" opacity="0.8" />
         <rect x="246" y="168" width="4" height="12" fill={INK} />
         <rect x="320" y="168" width="4" height="12" fill={INK} />
       </g>
+      <Smoke x={292} y={152} delay={1} />
       <rect x="0" y="180" width="400" height="20" fill="#bfb49b" />
     </g>
   );
@@ -136,7 +204,10 @@ function Village({ id }: { id: string }) {
       <rect width="400" height="200" fill={`url(#sky-${id})`} />
       <Mountains id={id} y={95} tone={0.35} />
       {/* 炭窑之烟 */}
-      <path d="M310 90 q-10 -20 6 -34 q16 -14 2 -36" stroke="#6b6a6a" strokeWidth="6" fill="none" opacity="0.25" filter={`url(#soft-${id})`} />
+      <path className="kiln-smoke" d="M310 90 q-10 -20 6 -34 q16 -14 2 -36" stroke="#6b6a6a" strokeWidth="6" fill="none" opacity="0.25" filter={`url(#soft-${id})`} />
+      <Smoke x={310} y={86} delay={0.5} />
+      <Birds x={60} y={36} />
+      <Mist id={id} y={98} o={0.6} />
       <g filter={`url(#bleed-${id})`}>
         <path d="M290 96 l20 -12 l20 12z" fill={INK} opacity="0.7" />
         <path d="M60 112 l26 -18 l26 18z" fill={INK} opacity="0.8" />
@@ -154,6 +225,11 @@ function Village({ id }: { id: string }) {
         />
       ))}
       <rect x="0" y="130" width="400" height="70" fill="#9fb0a8" opacity="0.25" />
+      <g className="shimmer" stroke="#efe8da" strokeWidth="1" opacity="0.55">
+        <line x1="40" y1="160" x2="70" y2="160" />
+        <line x1="200" y1="172" x2="240" y2="172" />
+        <line x1="320" y1="156" x2="350" y2="156" />
+      </g>
       {/* 秧苗 */}
       {Array.from({ length: 28 }).map((_, i) => (
         <line key={`s${i}`} x1={(i * 37) % 400} y1={150 + (i % 4) * 12} x2={((i * 37) % 400) + 2} y2={144 + (i % 4) * 12} stroke="#4f6b3a" strokeWidth="1.5" />
@@ -166,6 +242,7 @@ function Night({ id }: { id: string }) {
   return (
     <g>
       <rect width="400" height="200" fill={`url(#night-${id})`} />
+      <circle cx="310" cy="50" r="34" fill="#efe8da" opacity="0.12" className="moon-glow" />
       <circle cx="310" cy="50" r="20" fill="#efe8da" opacity="0.85" />
       <g filter={`url(#soft-${id})`} opacity="0.6">
         <path d="M0 130 Q100 90 200 120 T400 110 V200 H0Z" fill="#0f1528" />
@@ -177,8 +254,24 @@ function Night({ id }: { id: string }) {
         <path d="M160 113 h16 l-8 -8z" />
       </g>
       {[0, 1, 2, 3, 4, 5].map((i) => (
-        <circle key={i} cx={40 + i * 60} cy={170 - (i % 2) * 6} r="3" fill="#d8a64a" opacity="0.8" />
+        <circle key={i} cx={40 + i * 60} cy={170 - (i % 2) * 6} r="3" fill="#d8a64a" opacity="0.8" className="lantern" style={{ animationDelay: `${i * 0.4}s` }} />
       ))}
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+        <circle
+          key={`f${i}`}
+          className="firefly"
+          cx={30 + ((i * 47) % 340)}
+          cy={120 + ((i * 23) % 50)}
+          r="1.8"
+          fill="#e9f0a0"
+          style={{ animationDelay: `${i * 0.7}s` }}
+        />
+      ))}
+      <g className="rain" stroke="#c9d3ea" strokeWidth="0.8" opacity="0.35">
+        {Array.from({ length: 26 }).map((_, i) => (
+          <line key={`r${i}`} x1={(i * 61) % 410} y1={(i * 37) % 200} x2={((i * 61) % 410) - 6} y2={((i * 37) % 200) + 16} />
+        ))}
+      </g>
     </g>
   );
 }
@@ -239,7 +332,17 @@ export function TitleArt() {
         </linearGradient>
       </defs>
       <rect width="400" height="600" fill="url(#tsky)" />
+      <circle cx="290" cy="150" r="70" fill="#b5361f" opacity="0.12" className="sun-breathe" />
       <circle cx="290" cy="150" r="46" fill="#b5361f" opacity="0.85" />
+      <g className="birds slow" fill="none" stroke="#0b1020" strokeWidth="2" strokeLinecap="round">
+        <path d="M200 120 q6 -6 12 0 q6 -6 12 0" />
+        <path d="M232 132 q5 -5 10 0 q5 -5 10 0" />
+      </g>
+      <g filter="url(#tsoft)" className="mist-drift slow" opacity="0.35">
+        <ellipse cx="100" cy="330" rx="160" ry="14" fill="#9aa4bf" />
+        <ellipse cx="380" cy="345" rx="160" ry="12" fill="#9aa4bf" />
+        <ellipse cx="660" cy="335" rx="160" ry="14" fill="#9aa4bf" />
+      </g>
       <g filter="url(#tsoft)">
         <path d="M0 380 Q80 290 160 350 T320 320 T400 340 V600 H0Z" fill="#1b2440" opacity="0.9" />
         <path d="M0 440 Q120 370 220 420 T400 400 V600 H0Z" fill="#10172b" />
