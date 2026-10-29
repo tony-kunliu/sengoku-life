@@ -1,14 +1,14 @@
 // 离线渲染：在浏览器 OfflineAudioContext 中把每首曲子渲染成波形，供分析与试听。
-import { THEMES, eventsInWindow } from '../src/audio/score';
+import { eventsInWindow, getTheme, type MusicStyle } from '../src/audio/score';
 import { makeReverb, play, type Bus } from '../src/audio/synth';
 
 declare global {
   interface Window {
-    renderTheme: (id: string, seconds: number, intensity: number) => Promise<number[][]>;
+    renderTheme: (id: string, seconds: number, intensity: number, style: MusicStyle) => Promise<number[][]>;
   }
 }
 
-window.renderTheme = async (id, seconds, intensity) => {
+window.renderTheme = async (id, seconds, intensity, style) => {
   const sr = 32000;
   const ctx = new OfflineAudioContext(2, sr * seconds, sr);
   const comp = ctx.createDynamicsCompressor();
@@ -23,7 +23,7 @@ window.renderTheme = async (id, seconds, intensity) => {
   wet.gain.value = 0.34;
   send.connect(conv).connect(wet).connect(master);
   const bus: Bus = { ctx: ctx as unknown as AudioContext, out: master, verb: send };
-  const th = THEMES[id];
+  const th = getTheme(id, style);
   const spb = 60 / th.bpm;
   const beats = seconds / spb;
   for (const layer of th.layers) {

@@ -2,7 +2,19 @@
 // 箏（koto）与三味线：Karplus-Strong 拨弦；尺八：带气声的笛音；
 // 太鼓 / 缔太鼓 / 拍子木 / 木刀：打击合成；梵钟 / 铃：非谐波泛音。
 
-export type Inst = 'koto' | 'shamisen' | 'shaku' | 'taiko' | 'shime' | 'hyoshigi' | 'bokuto' | 'bell' | 'rin';
+export type Inst =
+  | 'koto'
+  | 'shamisen'
+  | 'shaku'
+  | 'fue'
+  | 'strings'
+  | 'kane'
+  | 'taiko'
+  | 'shime'
+  | 'hyoshigi'
+  | 'bokuto'
+  | 'bell'
+  | 'rin';
 
 export const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -261,6 +273,122 @@ function bell(bus: Bus, freq: number, t: number, v: number, big: boolean) {
   }
 }
 
+/** 篠笛：比尺八明亮、起音快、揉音密，祭典和明快曲子的主旋律 */
+function fue(bus: Bus, freq: number, t: number, v: number, dur: number) {
+  const { ctx } = bus;
+  const o = ctx.createOscillator();
+  o.type = 'sine';
+  const o2 = ctx.createOscillator();
+  o2.type = 'triangle';
+  o.frequency.setValueAtTime(freq * 0.985, t);
+  o.frequency.exponentialRampToValueAtTime(freq, t + 0.05);
+  o2.frequency.setValueAtTime(freq * 0.985, t);
+  o2.frequency.exponentialRampToValueAtTime(freq, t + 0.05);
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 5.8 + Math.random() * 0.6;
+  const lg = ctx.createGain();
+  lg.gain.setValueAtTime(0, t);
+  lg.gain.linearRampToValueAtTime(0, t + Math.min(0.25, dur * 0.5));
+  lg.gain.linearRampToValueAtTime(freq * 0.009, t + Math.min(0.6, dur * 0.9));
+  lfo.connect(lg);
+  lg.connect(o.frequency);
+  lg.connect(o2.frequency);
+  const o2g = ctx.createGain();
+  o2g.gain.value = 0.35;
+  const n = ctx.createBufferSource();
+  n.buffer = noise(ctx);
+  n.loop = true;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = Math.min(9000, freq * 3);
+  bp.Q.value = 2;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.0001, t);
+  ng.gain.exponentialRampToValueAtTime(v * 0.3, t + 0.02);
+  ng.gain.exponentialRampToValueAtTime(v * 0.05, t + 0.12);
+  ng.gain.setValueAtTime(v * 0.05, t + dur);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.15);
+  const g = ctx.createGain();
+  const peak = v * 0.3;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.035);
+  g.gain.setValueAtTime(peak, t + Math.max(0.04, dur - 0.04));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.18);
+  o.connect(g);
+  o2.connect(o2g).connect(g);
+  n.connect(bp).connect(ng).connect(g);
+  const pan = ctx.createStereoPanner();
+  pan.pan.value = -0.05;
+  g.connect(pan);
+  pan.connect(bus.out);
+  pan.connect(bus.verb);
+  const end = t + dur + 0.25;
+  for (const s of [o, o2, lfo]) {
+    s.start(t);
+    s.stop(end);
+  }
+  n.start(t, Math.random());
+  n.stop(end);
+}
+
+/** 弦乐铺底：三支微失谐的锯齿波，柔和低通，慢起慢收 */
+function strings(bus: Bus, freq: number, t: number, v: number, dur: number) {
+  const { ctx } = bus;
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = Math.min(2600, freq * 4);
+  lp.Q.value = 0.5;
+  const g = ctx.createGain();
+  const peak = v * 0.07;
+  const atk = Math.min(0.35, dur * 0.3);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + atk);
+  g.gain.setValueAtTime(peak, t + Math.max(atk, dur - 0.05));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.5);
+  lp.connect(g);
+  const pan = ctx.createStereoPanner();
+  pan.pan.value = (Math.random() - 0.5) * 0.6;
+  g.connect(pan);
+  pan.connect(bus.out);
+  pan.connect(bus.verb);
+  for (const det of [-7, 0, 6]) {
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.value = freq;
+    o.detune.value = det;
+    o.connect(lp);
+    o.start(t);
+    o.stop(t + dur + 0.6);
+  }
+}
+
+/** 当り钲（祭典的小铜钲）：清亮的金属短音 */
+function kane(bus: Bus, t: number, v: number) {
+  const { ctx } = bus;
+  [1, 2.76, 5.4, 8.93].forEach((p, i) => {
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = 1650 * p;
+    const g = ctx.createGain();
+    env(g, t, (v * 0.12) / (1 + i), 0.001, 0.22 / (1 + i * 0.4));
+    o.connect(g);
+    g.connect(bus.out);
+    g.connect(bus.verb);
+    o.start(t);
+    o.stop(t + 0.3);
+  });
+  const n = ctx.createBufferSource();
+  n.buffer = noise(ctx);
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 5000;
+  const ng = ctx.createGain();
+  env(ng, t, v * 0.12, 0.001, 0.05);
+  n.connect(hp).connect(ng).connect(bus.out);
+  n.start(t, Math.random());
+  n.stop(t + 0.08);
+}
+
 export function play(bus: Bus, inst: Inst, t: number, midi: number, v: number, dur: number, bend = 0) {
   const f = mtof(midi);
   switch (inst) {
@@ -270,6 +398,12 @@ export function play(bus: Bus, inst: Inst, t: number, midi: number, v: number, d
       return pluck(bus, 'shamisen', f, t, v, dur, bend);
     case 'shaku':
       return shakuhachi(bus, f, t, v, dur);
+    case 'fue':
+      return fue(bus, f, t, v, dur);
+    case 'strings':
+      return strings(bus, f, t, v, dur);
+    case 'kane':
+      return kane(bus, t, v);
     case 'taiko':
       return drum(bus, t, v * 0.9, 95, 48, 0.75, 380, 0.45);
     case 'shime':

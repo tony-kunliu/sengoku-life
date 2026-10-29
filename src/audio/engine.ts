@@ -1,5 +1,5 @@
 // 音乐与音效总控：主题交叉淡入淡出、前瞻调度、环境声、音量设置、iOS 解锁。
-import { THEMES, eventsInWindow, type Theme } from './score';
+import { eventsInWindow, getTheme, type MusicStyle, type Theme } from './score';
 import { makeReverb, noise, play, type Bus, type Inst } from './synth';
 
 export type Sfx =
@@ -24,10 +24,11 @@ export interface AudioSettings {
   music: number;
   sfx: number;
   muted: boolean;
+  style: MusicStyle;
 }
 
 const KEY = 'sengoku-life:audio';
-const DEFAULTS: AudioSettings = { music: 0.6, sfx: 0.8, muted: false };
+const DEFAULTS: AudioSettings = { music: 0.6, sfx: 0.8, muted: false, style: 'bright' };
 
 function loadSettings(): AudioSettings {
   try {
@@ -128,7 +129,9 @@ class AudioDirector {
   }
 
   update(patch: Partial<AudioSettings>) {
+    const styleChanged = patch.style && patch.style !== this.settings.style;
     this.settings = { ...this.settings, ...patch };
+    if (styleChanged && this.ctx && this.ctx.state === 'running') this.switchTo(this.wanted);
     try {
       localStorage.setItem(KEY, JSON.stringify(this.settings));
     } catch {
@@ -149,7 +152,7 @@ class AudioDirector {
   setTheme(id: string) {
     this.wanted = id;
     if (!this.ctx || this.ctx.state !== 'running') return;
-    if (this.current?.theme.id === id) return;
+    if (this.current?.theme.id === id && this.current.theme === getTheme(id, this.settings.style)) return;
     this.switchTo(id);
   }
 
@@ -159,7 +162,7 @@ class AudioDirector {
 
   private switchTo(id: string) {
     const ctx = this.ctx!;
-    const theme = THEMES[id] ?? THEMES.title;
+    const theme = getTheme(id, this.settings.style);
     const now = ctx.currentTime;
     const old = this.current;
     if (old) {

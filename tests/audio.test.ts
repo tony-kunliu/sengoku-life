@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import '../src/content';
-import { IN, THEMES, YO, degToMidi, eventsInWindow, rhythm, seq } from '../src/audio/score';
+import { BRIGHT, IN, THEMES, YO, chordLayers, degToMidi, eventsInWindow, rhythm, seq } from '../src/audio/score';
 import { cuesFor, intensityFor, themeFor } from '../src/audio/cues';
 import { newGame } from '../src/engine/core';
 import { playMove, travel, sleep, startBout } from '../src/engine/game';
@@ -28,7 +28,7 @@ test('乐谱：记法解析与循环长度', () => {
 });
 
 test('乐谱：每首曲子都能解析，循环窗口不漏音也不重音', () => {
-  for (const th of Object.values(THEMES)) {
+  for (const th of [...Object.values(THEMES), ...Object.values(BRIGHT)]) {
     assert.ok(th.bpm >= 40 && th.bpm <= 160, th.id);
     for (const layer of th.layers) {
       assert.ok(layer.cycle > 0);
@@ -79,4 +79,16 @@ test('音效：日替敲钟、比试开始与出招都有对应的声音', () =>
   const c = cuesFor(b1, b2);
   assert.ok(c.length >= 1, `出招应有音效：${c}`);
   assert.deepEqual(cuesFor(b2, b2), []);
+});
+
+test('明快版：每首曲子的旋律与和弦进行对齐，且包含相同的场景', () => {
+  assert.deepEqual(Object.keys(BRIGHT).sort(), Object.keys(THEMES).sort());
+  for (const th of Object.values(BRIGHT)) {
+    const melody = th.layers.find((l) => l.inst === 'fue' || l.inst === 'shaku' || (l.inst === 'koto' && l.events.length > 20 && !l.prob));
+    const pad = th.layers.find((l) => l.inst === 'strings');
+    assert.ok(melody && pad, th.id);
+    assert.equal(melody!.cycle % pad!.cycle === 0 || pad!.cycle % melody!.cycle === 0, true, `${th.id}: 旋律 ${melody!.cycle} 拍 / 和弦 ${pad!.cycle} 拍`);
+    assert.ok(th.bpm >= 90 || th.id === 'night', `${th.id} 应当轻快`);
+  }
+  assert.throws(() => chordLayers('D X', { pad: 1 }));
 });

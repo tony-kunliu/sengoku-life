@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { audio } from '../audio/engine';
-import { THEMES } from '../audio/score';
+import { STYLE_LABEL, getTheme, type MusicStyle } from '../audio/score';
 
 export function useAudioSettings() {
   const [s, setS] = useState(audio.settings);
@@ -29,8 +29,25 @@ export function SoundSheet({ onClose, theme }: { onClose: () => void; theme: str
       <div className="sheet" onClick={(e: Event) => e.stopPropagation()} role="dialog" aria-label="声音">
         <h2 className="sheet-title">声音</h2>
         <p className="muted">
-          正在演奏：《{THEMES[theme]?.name ?? '—'}》。箏、尺八、三味线、太鼓与梵钟，全部由浏览器即时合成。
+          正在演奏：《{getTheme(theme, s.style).name}》。笛、箏、三味线、弦乐、太鼓与钲，全部由浏览器即时合成。
         </p>
+        <div className="style-pick" role="radiogroup" aria-label="配乐风格">
+          {(['bright', 'classic'] as MusicStyle[]).map((st) => (
+            <button
+              key={st}
+              role="radio"
+              aria-checked={s.style === st}
+              className={`style-opt ${s.style === st ? 'on' : ''}`}
+              onClick={() => {
+                audio.unlock();
+                audio.update({ style: st });
+              }}
+            >
+              <strong>{STYLE_LABEL[st]}</strong>
+              <small>{st === 'bright' ? '笛与弦乐、祭典节奏，积极向上' : '尺八与箏，幽玄寂静'}</small>
+            </button>
+          ))}
+        </div>
         <div className="sound-row">
           <label htmlFor="vol-music">音乐</label>
           <input

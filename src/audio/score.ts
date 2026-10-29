@@ -204,3 +204,190 @@ export function eventsInWindow(layer: Layer, from: number, to: number): { at: nu
   }
   return out;
 }
+
+// ═════════════════════ 明快版（祭典与凯歌） ═════════════════════
+// 五声音阶的旋律 + 西洋三和弦的弦乐与琶音：日本风味，但明亮、向上。
+
+const CHORDS: Record<string, number[]> = {
+  D: [50, 54, 57],
+  G: [55, 59, 62],
+  A: [57, 61, 64],
+  Em: [52, 55, 59],
+  Bm: [47, 50, 54],
+  C: [48, 52, 55],
+};
+
+export interface ChordOpts {
+  beats?: number;
+  pad?: number;
+  bass?: number;
+  arp?: number;
+  arpInst?: Inst;
+  /** 琶音每格拍数（0.5 = 八分音符） */
+  arpStep?: number;
+  arpMin?: number;
+  padMin?: number;
+}
+
+/** 由和弦进行生成：弦乐铺底、箏低音、琶音 */
+export function chordLayers(prog: string, o: ChordOpts = {}): Layer[] {
+  const beats = o.beats ?? 4;
+  const names = prog.trim().split(/\s+/);
+  for (const n of names) if (!CHORDS[n]) throw new Error(`未知和弦：${n}`);
+  const cycle = names.length * beats;
+  const layers: Layer[] = [];
+  if (o.pad) {
+    const ev: NoteEv[] = [];
+    names.forEach((n, i) => {
+      const [r, t, f] = CHORDS[n];
+      for (const m of [r, t, f, r + 12]) ev.push({ b: i * beats, n: m + 12, d: beats, v: o.pad! });
+    });
+    layers.push({ inst: 'strings', cycle, events: ev, ...(o.padMin != null ? { minIntensity: o.padMin } : {}) });
+  }
+  if (o.bass) {
+    const ev: NoteEv[] = [];
+    names.forEach((n, i) => {
+      const [r, , f] = CHORDS[n];
+      ev.push({ b: i * beats, n: r - 12, d: 2, v: o.bass! });
+      ev.push({ b: i * beats + beats / 2, n: f - 12, d: 2, v: o.bass! * 0.8 });
+    });
+    layers.push({ inst: 'koto', cycle, events: ev });
+  }
+  if (o.arp) {
+    const step = o.arpStep ?? 0.5;
+    const pat = [0, 2, 1, 2, 3, 2, 1, 2];
+    const ev: NoteEv[] = [];
+    names.forEach((n, i) => {
+      const [r, t, f] = CHORDS[n];
+      const tones = [r + 12, t + 12, f + 12, r + 24];
+      for (let k = 0; k * step < beats; k++) ev.push({ b: i * beats + k * step, n: tones[pat[k % pat.length]], d: step, v: o.arp! });
+    });
+    layers.push({ inst: o.arpInst ?? 'koto', cycle, events: ev, prob: 0.96, ...(o.arpMin != null ? { minIntensity: o.arpMin } : {}) });
+  }
+  return layers;
+}
+
+const D5 = 74;
+
+export const BRIGHT: Record<string, Theme> = {
+  title: {
+    id: 'title',
+    name: '青云之志',
+    bpm: 100,
+    layers: [
+      seq(
+        '5:1.5 6:0.5 7:2 | 6:1 5:1 3:2 | 4:1 5:1 6:2 | 5:4 | 7:1.5 8:0.5 9:1 8:1 | 7:1 6:1 5:2 | 4:1 3:1 4:1 6:1 | 5:3 -:1 | ' +
+          '3:1.5 4:0.5 5:2 | 4:1 3:1 2:2 | 3:1 4:1 5:1 6:1 | 7:4 | 8:1.5 7:0.5 6:1 5:1 | 6:1 5:1 4:2 | 3:1 4:1 6:1 7:1 | 5:4',
+        'fue',
+        D4,
+        YO,
+        0.62,
+      ),
+      ...chordLayers('D G G D G D Em D D G G G D Em A D', { pad: 0.55, bass: 0.5, arp: 0.32 }),
+      rhythm('X.......x...x...', 'taiko', 0.5, 0.5),
+      rhythm('..x...x...x...x.', 'kane', 0.5, 0.45),
+    ],
+  },
+  town: {
+    id: 'town',
+    name: '城下繁华',
+    bpm: 124,
+    layers: [
+      seq(
+        '3:0.5 4:0.5 5:1 4:0.5 3:0.5 2:1 | 3:1 5:1 4:2 | 3:0.5 4:0.5 5:1 6:0.5 5:0.5 4:1 | 3:3 -:1 | ' +
+          '5:0.5 6:0.5 7:1 6:0.5 5:0.5 4:1 | 5:1 4:1 3:2 | 2:0.5 3:0.5 4:1 3:1 1:1 | 0:3 -:1',
+        'fue',
+        D5,
+        YO,
+        0.5,
+      ),
+      ...chordLayers('D D G A D G A D', { pad: 0.35, bass: 0.55, arp: 0.3, arpInst: 'shamisen' }),
+      rhythm('X.x.X.x.X.x.X.xx', 'shime', 0.5, 0.4),
+      rhythm('x.ox.ox.x.ox.oxo', 'kane', 0.25, 0.4),
+      rhythm('X.......X...x...', 'taiko', 0.5, 0.55),
+    ],
+  },
+  village: {
+    id: 'village',
+    name: '田植歌',
+    bpm: 108,
+    layers: [
+      seq('2:1 3:1 4:1 3:1 | 2:1 1:1 2:2 | 3:1 4:1 5:1 4:1 | 3:3 -:1 | 5:1 4:1 3:1 4:1 | 5:1 6:1 5:2 | 4:1 3:1 2:1 1:1 | 2:3 -:1', 'fue', D4, YO, 0.6),
+      ...chordLayers('G G G D G Em D G', { pad: 0.35, bass: 0.45, arp: 0.24 }),
+      rhythm('..x...x...x...x.', 'hyoshigi', 0.5, 0.35),
+      rhythm('X.......x.......', 'taiko', 0.5, 0.4),
+    ],
+    ambience: 'wind',
+  },
+  teahouse: {
+    id: 'teahouse',
+    name: '水月小调',
+    bpm: 92,
+    layers: [
+      seq('5:1 4:0.5 3:0.5 4:1 2:1 | 3:2 1:1 2:1 | 3:1 4:1 5:1 6:1 | 5:4 | 6:1 5:0.5 4:0.5 5:1 3:1 | 4:2 2:1 3:1 | 1:1 2:1 3:1 1:1 | 0:4', 'koto', D4, YO, 0.8),
+      ...chordLayers('D Em G D Em G A D', { pad: 0.4, bass: 0.4 }),
+      seq('-:16 5:4 6:4 7:4 5:4', 'fue', D4, YO, 0.35, { prob: 0.8 }),
+      rhythm('..o...o...o...o.', 'kane', 0.5, 0.25),
+    ],
+  },
+  dojo: {
+    id: 'dojo',
+    name: '朝稽古',
+    bpm: 116,
+    layers: [
+      seq('0:0.5 2:0.5 3:1 5:2 | 4:1 3:1 2:1 3:1 | 3:0.5 5:0.5 6:1 7:2 | 6:1 5:1 4:2 | 5:1 6:1 7:1 8:1 | 7:1 6:1 5:2 | 4:1 5:1 6:1 4:1 | 5:4', 'fue', D4, YO, 0.6),
+      ...chordLayers('D G G Em G G A D', { pad: 0.45, bass: 0.55, arp: 0.28 }),
+      rhythm('X..xX...X..xX.x.', 'taiko', 0.5, 0.65),
+      rhythm('x.x.x.x.x.x.x.x.', 'shime', 0.5, 0.3),
+      rhythm('X...............', 'hyoshigi', 1, 0.5),
+    ],
+  },
+  night: {
+    id: 'night',
+    name: '决意之夜',
+    bpm: 76,
+    layers: [
+      seq('2:2 3:1 4:1 | 5:3 4:1 | 3:2 2:1 1:1 | 2:4 | 4:2 5:1 6:1 | 7:3 6:1 | 5:1 4:1 3:1 1:1 | 2:4', 'shaku', D4, YO, 0.5),
+      ...chordLayers('G G Em G Em G D G', { pad: 0.5, bass: 0.35 }),
+      seq('0:32', 'bell', D2, YO, 0.4),
+      rhythm('X...............', 'taiko', 0.5, 0.35),
+    ],
+    ambience: 'rain',
+  },
+  combat: {
+    id: 'combat',
+    name: '一骑讨',
+    bpm: 140,
+    layers: [
+      seq('4:1 5:1 6:2 | 5:1 4:1 2:2 | 3:1 4:1 5:1 3:1 | 5:4 | 6:1 7:1 8:2 | 7:1 6:1 5:2 | 4:1 5:1 6:1 8:1 | 9:2 8:2', 'fue', D4, YO, 0.58),
+      seq('4:1 5:1 6:2 | 5:1 4:1 2:2 | 3:1 4:1 5:1 3:1 | 5:4 | 6:1 7:1 8:2 | 7:1 6:1 5:2 | 4:1 5:1 6:1 8:1 | 9:2 8:2', 'shamisen', D3, YO, 0.45, {
+        minIntensity: 2,
+      }),
+      ...chordLayers('Bm G A D Em G A D', { pad: 0.5, bass: 0.6, arp: 0.3, arpMin: 1 }),
+      rhythm('X.xxX.x.X.xxX.xx', 'taiko', 0.5, 0.75),
+      rhythm('x.ox.ox.x.ox.oxo', 'kane', 0.25, 0.35, { minIntensity: 1 }),
+      rhythm('xxoxxxoxxxoxxxxx', 'shime', 0.25, 0.28, { minIntensity: 2 }),
+    ],
+  },
+  ending: {
+    id: 'ending',
+    name: '凯旋',
+    bpm: 96,
+    layers: [
+      seq('5:2 6:1 7:1 | 8:3 7:1 | 6:1 5:1 6:1 7:1 | 5:4 | 7:1.5 6:0.5 5:1 4:1 | 5:1 6:1 4:2 | 3:1 4:1 5:1 6:1 | 5:4', 'fue', D4, YO, 0.62),
+      ...chordLayers('D G Em D G D A D', { pad: 0.55, bass: 0.5, arp: 0.3 }),
+      rhythm('X.......x...x...', 'taiko', 0.5, 0.5),
+      rhythm('..x...x...x...x.', 'kane', 0.5, 0.4),
+      seq('0:32', 'bell', D2, YO, 0.35),
+    ],
+  },
+};
+
+export type MusicStyle = 'bright' | 'classic';
+
+export const STYLE_LABEL: Record<MusicStyle, string> = { bright: '明快', classic: '古朴' };
+
+export function getTheme(id: string, style: MusicStyle): Theme {
+  const set = style === 'classic' ? THEMES : BRIGHT;
+  return set[id] ?? set.title;
+}

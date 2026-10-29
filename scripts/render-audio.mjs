@@ -3,6 +3,7 @@ import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'node:fs';
 const out = process.argv[2];
 const seconds = Number(process.argv[3] || 16);
+const style = process.argv[4] || 'bright';
 mkdirSync(out, { recursive: true });
 const r = await build({ entryPoints: ['scripts/render-audio.ts'], bundle: true, write: false, format: 'iife' });
 const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
@@ -23,7 +24,7 @@ const wav = (L, R, sr) => {
 const ids = ['title', 'town', 'dojo', 'teahouse', 'village', 'night', 'combat', 'ending'];
 const report = {};
 for (const id of ids) {
-  const [L, R] = await p.evaluate(([id, s]) => window.renderTheme(id, s, 2), [id, seconds]);
+  const [L, R] = await p.evaluate(([id, s, st]) => window.renderTheme(id, s, 2, st), [id, seconds, style]);
   let peak = 0, sum = 0, nan = 0, silentSec = 0;
   const sr = 32000;
   for (let i = 0; i < L.length; i++) { const v = L[i]; if (!Number.isFinite(v)) nan++; peak = Math.max(peak, Math.abs(v)); sum += v * v; }

@@ -894,3 +894,18 @@ small { font-size: 0.8em; }
 @media (prefers-reduced-motion: reduce) {
   .fusuma, .strike, .hajime { display: none; }
 }
+.style-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 4px; }
+.style-opt {
+  text-align: left;
+  border: 1px solid var(--paper-3);
+  background: var(--paper);
+  border-radius: 4px;
+  padding: 10px 12px;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4;
+}
+.style-opt small { color: var(--ink-soft); }
+.style-opt.on { border-color: var(--vermilion); box-shadow: inset 0 0 0 1px var(--vermilion); }
+.style-opt.on strong { color: var(--vermilion); }
