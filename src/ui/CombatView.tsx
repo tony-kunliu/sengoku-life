@@ -2,7 +2,7 @@ import { makeHint } from '../engine/combat/hint';
 import { describeState, previewMove } from '../engine/combat/rules';
 import type { Fighter, Move } from '../engine/combat/types';
 import { MOVE_LABEL } from '../engine/combat/types';
-import { closeBout, forfeitBout, playMove } from '../engine/game';
+import { canQuickFinish, closeBout, forfeitBout, playMove, quickFinish } from '../engine/game';
 import { REG } from '../engine/registry';
 import type { GameState, NpcId } from '../engine/types';
 import type { Apply } from './App';
@@ -71,6 +71,11 @@ export function CombatView({ s, apply }: { s: GameState; apply: Apply }) {
           <span className="round">
             第 {Math.min(cs.round, cs.maxRounds)}/{cs.maxRounds} 回合 · {cs.target === 1 ? '一本胜负' : `${cs.target} 本先取`}
           </span>
+          {canQuickFinish(s) && (
+            <button className="forfeit quick" onClick={() => apply(quickFinish)}>
+              速决
+            </button>
+          )}
           {context.kind === 'spar' && !cs.finished && (
             <button className="forfeit" onClick={() => apply(forfeitBout)}>
               认输

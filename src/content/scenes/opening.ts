@@ -118,6 +118,7 @@ export const OPENING: SceneDef[] = [
               { t: 'rel', npc: 'gosaku', trust: 15, favor: 20 },
               { t: 'fame', n: 3 },
               { t: 'mem', npc: 'gosaku', id: 'saved', text: '你教村里人把水烧开、喂盐米汤，救了五郎作的孙子。' },
+              { t: 'xp', stat: 'med', n: 100 },
               { t: 'time', slots: 1 },
             ],
             next: 'good',

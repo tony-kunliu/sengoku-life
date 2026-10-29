@@ -3,6 +3,8 @@ import { SoundButton } from './SoundSheet';
 import { dateLabel } from '../engine/calendar';
 import type { SaveMeta } from '../engine/save';
 import { TitleArt } from './art';
+import { ENDING_IDS, ENDING_INFO } from '../content/endings';
+import { seenEndings } from './gallery';
 
 export function TitleView({
   meta,
@@ -19,6 +21,8 @@ export function TitleView({
 }) {
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
+  const [gallery, setGallery] = useState(false);
+  const seen = seenEndings();
   return (
     <div className="title-screen">
       <TitleArt />
@@ -43,6 +47,9 @@ export function TitleView({
             )}
             <button className={meta ? 'ghost big' : 'primary big'} onClick={() => setNaming(true)}>
               新的人生
+            </button>
+            <button className="link" onClick={() => setGallery(true)}>
+              结局图鉴 {seen.length} / {ENDING_IDS.length}
             </button>
             <p className="title-note">一局约 20–30 分钟 · 每次行动自动存档</p>
           </div>
@@ -74,6 +81,27 @@ export function TitleView({
         )}
       </div>
       {soundSheet}
+      {gallery && (
+        <div className="sheet-back" onClick={() => setGallery(false)}>
+          <div className="sheet" onClick={(e: Event) => e.stopPropagation()} role="dialog" aria-label="结局图鉴">
+            <h2 className="sheet-title">结局图鉴</h2>
+            <ul className="gallery">
+              {ENDING_IDS.map((id) => {
+                const got = seen.includes(id);
+                return (
+                  <li key={id} className={got ? 'got' : ''}>
+                    <strong>{got ? ENDING_INFO[id].title : '？？？'}</strong>
+                    <small>{got ? '已达成' : `提示：${ENDING_INFO[id].hint}`}</small>
+                  </li>
+                );
+              })}
+            </ul>
+            <button className="primary" onClick={() => setGallery(false)}>
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

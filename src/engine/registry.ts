@@ -1,7 +1,7 @@
 // 内容注册表：引擎只依赖这里的接口，具体人物/地点/事件由 content/ 注册。
 // 以后添加新年份、新地点、新人物，只需要注册新的内容数据。
 import type { OpponentDef } from './combat/types';
-import type { GameState, LocationId, NpcId, StatKey, Stance } from './types';
+import type { AnyKey, GameState, LocationId, NpcId, Stance, StatKey } from './types';
 
 export type Cond = (s: GameState) => boolean;
 export type Txt = string | ((s: GameState) => string);
@@ -15,7 +15,7 @@ export type Effect =
   | { t: 'quest'; id: string; stage: number }
   | { t: 'money'; n: number }
   | { t: 'fame'; n: number }
-  | { t: 'xp'; stat: StatKey; n: number }
+  | { t: 'xp'; stat: AnyKey; n: number }
   | { t: 'cap'; stat: StatKey; n: number }
   | { t: 'tech'; id: string }
   | { t: 'time'; slots: number }
@@ -102,6 +102,10 @@ export interface NpcDef {
   /** 是否在人物页显示 */
   major: boolean;
   where: (s: GameState) => { loc: LocationId | null; doing: string };
+  /** 送礼的喜好与忌讳（礼物 id） */
+  likes?: string;
+  dislikes?: string;
+  giftLines?: { liked: string; disliked?: string };
   /** 当前人生状态（随剧情变化） */
   status: (s: GameState) => string;
 }

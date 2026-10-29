@@ -11,6 +11,19 @@ type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 export const MIGRATIONS: Record<number, Migration> = {
   // 0 → 1：早期测试存档缺少 toast / record 字段
   0: (raw) => ({ ...raw, toast: [], record: raw.record ?? { bouts: 0, wins: 0, losses: 0 }, version: 1 }),
+  // 1 → 2：v0.3 新增生活能力（智略 / 口才 / 医术）
+  1: (raw) => {
+    const player = { ...(raw.player as Record<string, unknown>) };
+    if (!player.life) {
+      const med = (raw.flags as Record<string, unknown>)?.villageSaved ? 1 : 0;
+      player.life = {
+        wit: { lv: 1, xp: 0, cap: 5, reps: 0 },
+        speech: { lv: 0, xp: 0, cap: 5, reps: 0 },
+        med: { lv: med, xp: 0, cap: 5, reps: 0 },
+      };
+    }
+    return { ...raw, player, version: 2 };
+  },
 };
 
 export function migrate(raw: unknown): GameState {

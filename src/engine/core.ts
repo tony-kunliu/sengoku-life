@@ -1,7 +1,7 @@
 // 基础状态操作（在克隆后的草稿上原地修改）
 import type { GameState, LogKind, NpcId, NpcState, Stance, StatKey } from './types';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 const ALL_NPCS: NpcId[] = ['gensai', 'hayato', 'seibei', 'oryo', 'toshiie', 'gonroku', 'gosaku', 'nobunaga'];
 
@@ -25,6 +25,8 @@ export function newGame(name: string, seed = Date.now() % 1_000_000_007): GameSt
       money: 0,
       fame: 0,
       stats: { atk: stat(2), def: stat(2), eye: stat(1) },
+      // 现代人受过教育：智略起点较高；口才、医术要在这个时代慢慢学
+      life: { wit: { lv: 1, xp: 0, cap: 5, reps: 0 }, speech: { lv: 0, xp: 0, cap: 5, reps: 0 }, med: { lv: 0, xp: 0, cap: 5, reps: 0 } },
       maxStamina: 8,
       techniques: [],
       weapon: 0,

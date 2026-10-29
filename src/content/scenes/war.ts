@@ -2,6 +2,7 @@
 import { hasMem, quest, R } from '../../engine/core';
 import type { Choice, SceneDef } from '../../engine/registry';
 import type { GameState } from '../../engine/types';
+import { req } from './req';
 
 const canFight = (s: GameState) => !!s.flags.masterRecognized || s.player.stats.atk.lv >= 4;
 
@@ -167,6 +168,20 @@ export const WAR: SceneDef[] = [
           { t: 'rel', npc: 'hayato', trust: 6 },
           { t: 'mem', npc: 'hayato', id: 'wounded', text: '桶狭间那天，隼人跟着冒进的队伍冲了出去，身负重伤。是你把他从死人堆里拖了回来。' },
         ],
+        choices: [
+          { label: '撕下衣袖，当场替他止血、固定伤腿', ...req({ med: 2 }), next: 'hayato_med' },
+          { label: '……', effects: [{ t: 'end', ending: 'hayato' }] },
+        ],
+      },
+      hayato_med: {
+        speaker: 'narrator',
+        text: '你按住伤口上方，用刀鞘和布条把腿固定好，又逼着他喝下烧过的水。军医赶到时说：“再晚半个时辰，这条腿就保不住了。”\n\n隼人疼得满头冷汗，却笑了：“……你这家伙，连这个都会？”',
+        effects: [
+          { t: 'flag', key: 'hayatoFate', v: 'treated' },
+          { t: 'rel', npc: 'hayato', trust: 10 },
+          { t: 'fame', n: 2 },
+          { t: 'mem', npc: 'hayato', id: 'treated', text: '桶狭间那天，是你当场替他止血固定，保住了他的腿。' },
+        ],
         choices: [endChoice('hayato')],
       },
 
@@ -216,7 +231,10 @@ export const WAR: SceneDef[] = [
           { t: 'fame', n: 3 },
           { t: 'mem', npc: 'oryo', id: 'guarded', text: '桶狭间那天，你守在水月门口，赶走了打劫的浪人。' },
         ],
-        choices: [endChoice('stay')],
+        choices: [
+          { label: '替街上受伤的人清洗、包扎伤口', ...req({ med: 1 }), next: 'stay_heal' },
+          endChoice('stay'),
+        ],
       },
       stay_lose: {
         speaker: 'narrator',
@@ -226,9 +244,23 @@ export const WAR: SceneDef[] = [
           { t: 'rel', npc: 'seibei', trust: 4 },
           { t: 'mem', npc: 'oryo', id: 'guarded', text: '桶狭间那天，你守在水月门口，虽然被打倒，却没有逃走。' },
         ],
-        choices: [endChoice('stay')],
+        choices: [
+          { label: '替街上受伤的人清洗、包扎伤口', ...req({ med: 1 }), next: 'stay_heal' },
+          endChoice('stay'),
+        ],
       },
 
+      stay_heal: {
+        speaker: 'narrator',
+        text: '那天傍晚，水月的门口排起了队：被抢的商人、摔断胳膊的孩子、被流箭擦伤的足轻。你烧水、洗伤、包扎，一直忙到深夜。\n\n第二天，城下的人见了你都会点头。有人开始叫你“水月的先生”。',
+        effects: [
+          { t: 'fame', n: 3 },
+          { t: 'rel', npc: 'oryo', trust: 5 },
+          { t: 'flag', key: 'townHealer', v: true },
+          { t: 'mem', npc: 'oryo', id: 'healer', text: '桶狭间那天，你在水月门口替受伤的人包扎到深夜。' },
+        ],
+        choices: [endChoice('stay')],
+      },
       // —— 逃离 ——
       flee: {
         speaker: 'narrator',

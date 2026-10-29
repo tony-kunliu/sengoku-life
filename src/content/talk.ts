@@ -3,6 +3,18 @@ import { hasMem, quest, R } from '../engine/core';
 import type { TalkResult } from '../engine/registry';
 import type { GameState, NpcId } from '../engine/types';
 import { hearRumor } from './world';
+import { GIFTS, likeKnown, type GiftId } from '../engine/gifts';
+import { NPCS } from './npcs';
+
+/** 阿凉（信任 25）：每天告诉你一个还不知道的礼物喜好 */
+function oryoGiftHint(s: GameState): string | null {
+  if (s.npcs.oryo.rel.trust < 25 || s.flags.oryoHintDay === s.day) return null;
+  const who = (Object.keys(NPCS) as NpcId[]).find((id) => id !== 'oryo' && NPCS[id].likes && s.npcs[id].rel.met && !likeKnown(s, id));
+  if (!who) return null;
+  s.flags.oryoHintDay = s.day;
+  s.flags[`knownLike_${who}`] = true;
+  return `告诉你个秘密：${NPCS[who].name}最喜欢${GIFTS[NPCS[who].likes as GiftId].name}。别说是我说的。`;
+}
 
 type Line = { when: (s: GameState) => boolean; text: string | ((s: GameState) => string); effects?: TalkResult['effects'] };
 
@@ -69,6 +81,10 @@ const POOLS: Record<NpcId, Line[]> = {
 };
 
 export function talkLine(s: GameState, npc: NpcId): TalkResult {
+  if (npc === 'oryo') {
+    const hint = oryoGiftHint(s);
+    if (hint) return { text: hint };
+  }
   const pool = POOLS[npc] ?? [];
   const line = pool.find((l) => l.when(s)) ?? { text: '……', when: () => true };
   const text = typeof line.text === 'function' ? line.text(s) : line.text;

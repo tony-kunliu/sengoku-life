@@ -7,6 +7,9 @@ const f = (s: GameState, k: string) => s.flags[k];
 export const NPCS: Record<NpcId, NpcDef> = {
   gensai: {
     id: 'gensai',
+    likes: 'tea',
+    dislikes: 'sake',
+    giftLines: { liked: '……好茶。坐下，陪我喝一碗。', disliked: '酒是乱心的东西。拿回去。' },
     name: '柳田源斋',
     reading: 'やなぎだ げんさい',
     age: 58,
@@ -28,6 +31,9 @@ export const NPCS: Record<NpcId, NpcDef> = {
   },
   hayato: {
     id: 'hayato',
+    likes: 'sake',
+    dislikes: 'book',
+    giftLines: { liked: '哈！懂我！今晚就喝了它！', disliked: '书？我看见字就头疼……' },
     name: '早瀬隼人',
     reading: 'はやせ はやと',
     age: 19,
@@ -54,6 +60,8 @@ export const NPCS: Record<NpcId, NpcDef> = {
   },
   seibei: {
     id: 'seibei',
+    likes: 'whetstone',
+    giftLines: { liked: '这、这是京都的砥石？！我能用它磨十年的刀……' },
     name: '清兵卫',
     reading: 'せいべえ',
     age: 21,
@@ -80,6 +88,9 @@ export const NPCS: Record<NpcId, NpcDef> = {
   },
   oryo: {
     id: 'oryo',
+    likes: 'book',
+    dislikes: 'whetstone',
+    giftLines: { liked: '哎呀，是物语抄本。你怎么知道我晚上睡不着？', disliked: '砥石？我开的是茶屋，不是铁匠铺哦。' },
     name: '阿凉',
     reading: 'おりょう',
     age: 26,
@@ -97,6 +108,9 @@ export const NPCS: Record<NpcId, NpcDef> = {
   },
   toshiie: {
     id: 'toshiie',
+    likes: 'sake',
+    dislikes: 'tea',
+    giftLines: { liked: '好酒！比茶强一百倍！', disliked: '茶？我又不是那些坐着发呆的茶人。' },
     name: '前田又左卫门利家',
     reading: 'まえだ またざえもん としいえ',
     age: 22,
@@ -117,6 +131,8 @@ export const NPCS: Record<NpcId, NpcDef> = {
   },
   gonroku: {
     id: 'gonroku',
+    likes: 'tea',
+    giftLines: { liked: '……多谢。（他难得地笑了一下）' },
     name: '岩田权六',
     reading: 'いわた ごんろく',
     age: 27,
@@ -131,6 +147,8 @@ export const NPCS: Record<NpcId, NpcDef> = {
   },
   gosaku: {
     id: 'gosaku',
+    likes: 'sake',
+    giftLines: { liked: '哎呀，这怎么好意思……那我今晚就喝一口。' },
     name: '五郎作',
     reading: 'ごろさく',
     age: 61,

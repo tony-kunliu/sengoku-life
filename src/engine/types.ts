@@ -17,6 +17,9 @@ export type NpcId =
   | 'nobunaga';
 
 export type StatKey = 'atk' | 'def' | 'eye';
+/** 生活能力：智略 / 口才 / 医术 */
+export type LifeKey = 'wit' | 'speech' | 'med';
+export type AnyKey = StatKey | LifeKey;
 
 export type Stance = 'stranger' | 'neutral' | 'friendly' | 'rival' | 'ally' | 'wary';
 
@@ -57,6 +60,7 @@ export interface PlayerState {
   money: number;
   fame: number;
   stats: Record<StatKey, StatProgress>;
+  life: Record<LifeKey, StatProgress>;
   maxStamina: number;
   techniques: string[];
   /** 兵器加成（木刀品质） */

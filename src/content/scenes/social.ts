@@ -2,6 +2,7 @@
 import { hasMem, quest, R } from '../../engine/core';
 import type { SceneDef } from '../../engine/registry';
 import type { GameState } from '../../engine/types';
+import { req } from './req';
 import { NPCS } from '../npcs';
 
 const here = (s: GameState, id: keyof typeof NPCS) => NPCS[id].where(s).loc === s.location;
@@ -90,6 +91,18 @@ export const SOCIAL: SceneDef[] = [
             next: 'cheap',
           },
           {
+            label: '替炭窑重算一遍账目，指出他们被炭商压了价，换来便宜的炭',
+            when: (s) => !s.flags.charcoalContact,
+            ...req({ wit: 2 }),
+            effects: [
+              { t: 'quest', id: 'seibei', stage: 2 },
+              { t: 'rel', npc: 'seibei', favor: 6 },
+              { t: 'xp', stat: 'wit', n: 25 },
+              { t: 'mem', npc: 'seibei', id: 'charcoal', text: '你用算术帮炭窑算清了账，换来了清兵卫需要的炭。' },
+            ],
+            next: 'reckon',
+          },
+          {
             label: '付 120 文买下十袋炭',
             locked: (s) => (s.player.money < 120 ? '钱不够（需要 120 文）' : null),
             effects: [
@@ -114,6 +127,7 @@ export const SOCIAL: SceneDef[] = [
         ],
       },
       cheap: { speaker: 'narrator', text: '汉子拍着胸脯说：按旧价，明天就用牛车送到城下。\n\n（清兵卫的炭有着落了。接下来要在城下替他找买家。）' },
+      reckon: { speaker: 'narrator', text: '你在地上画了一排数字：烧一窑要多少柴、出多少炭、炭商给多少钱。汉子看了半天，一拍大腿：“原来我们一直在亏！”\n\n他答应按本钱卖给清兵卫。（接下来要在城下替他找买家。）' },
       bought: { speaker: 'narrator', text: '十袋炭装上了村里的牛车。你的钱袋瘪了下去。\n\n（清兵卫的炭有着落了。接下来要在城下替他找买家。）' },
       labor: { speaker: 'narrator', text: '你被熏得满脸乌黑，咳了一路。但炭有了。\n\n（清兵卫的炭有着落了。接下来要在城下替他找买家。）' },
     },
@@ -151,6 +165,12 @@ export const SOCIAL: SceneDef[] = [
             next: 'proposal',
           },
           {
+            label: '亲自去军需役所，当面谈下一笔订单',
+            ...req({ speech: 2 }),
+            effects: [{ t: 'quest', id: 'seibei', stage: 3 }, { t: 'fame', n: 1 }, { t: 'xp', stat: 'speech', n: 25 }, { t: 'flag', key: 'buyerVia', v: 'speech' }],
+            next: 'talked',
+          },
+          {
             label: '挨家挨户去问',
             next: 'fail',
           },
@@ -167,6 +187,10 @@ export const SOCIAL: SceneDef[] = [
       proposal: {
         speaker: 'narrator',
         text: '你在纸上画出统一的长度、重量和插口，写明“百件为一批，验后付钱”。\n\n役所的小吏本来不耐烦，听说你就是“救了五条村病童的人”，才把文书收下。三天后，回信来了：先订五十件。\n\n——现代知识有用，但让它被听见的，是你已经积累的名声。',
+      },
+      talked: {
+        speaker: 'narrator',
+        text: '你没有求人，而是先问小吏：“前线最缺什么？”——枪头，缺得厉害，而且大小不一，足轻用着不顺手。\n\n你当场答应：同一规格，十天五十件，不合格不收钱。小吏犹豫半晌，在木札上写下了清兵卫的名字。',
       },
       fail: {
         speaker: 'narrator',
@@ -276,6 +300,22 @@ export const SOCIAL: SceneDef[] = [
             next: 'oryo',
           },
           {
+            label: '说服伝藏反过来替织田家给今川送假情报',
+            ...req({ wit: 2, speech: 2 }),
+            effects: [
+              { t: 'flag', key: 'spyChoice', v: 'double' },
+              { t: 'flag', key: 'spyResolved', v: true },
+              { t: 'flag', key: 'oryoNetwork', v: true },
+              { t: 'quest', id: 'spy', stage: 2 },
+              { t: 'world', key: 'odaIntel', n: 30 },
+              { t: 'rel', npc: 'oryo', trust: 10, respect: 10 },
+              { t: 'fame', n: 2 },
+              { t: 'xp', stat: 'wit', n: 30 },
+              { t: 'mem', npc: 'oryo', id: 'spy_double', text: '你说服今川的细作倒戈，替织田家送出假情报。阿凉说她从没见过这么会说话的人。' },
+            ],
+            next: 'double',
+          },
+          {
             label: '撕掉地图，放他走：“离开尾张，别再回来。”',
             effects: [
               { t: 'flag', key: 'spyChoice', v: 'mercy' },
@@ -303,6 +343,10 @@ export const SOCIAL: SceneDef[] = [
       oryo: {
         speaker: 'oryo',
         text: '……你比我想的还要聪明。\n\n好吧，告诉你也无妨。我收集的消息，会送到簗田出羽守大人那里——他是殿下的耳目。这张图，今晚就会到他手上。\n\n伝藏？他会被好好“请”去说话的。\n\n{name}，从今天起，你也是这张网的一部分了。',
+      },
+      double: {
+        speaker: 'narrator',
+        text: '你蹲下来，平静地问伝藏：今川许了他多少钱？家里还有几口人？\n\n“你送回去的图，可以照旧送。只是井要多画一口，兵要少写两百。”\n\n伝藏愣了很久，终于点了头。当晚，阿凉听你说完，第一次没有笑：“……你到底是什么人？”\n\n她把你带进茶屋的里屋，告诉了你簗田出羽守的名字。',
       },
       mercy: {
         speaker: 'narrator',
@@ -351,6 +395,19 @@ export const SOCIAL: SceneDef[] = [
             next: 'calm',
           },
           {
+            label: '笑着给两人各倒一杯酒，说几句让双方都下得了台的话',
+            ...req({ speech: 2 }),
+            effects: [
+              { t: 'rel', npc: 'toshiie', trust: 6, respect: 3 },
+              { t: 'rel', npc: 'hayato', trust: 4, respect: 2 },
+              { t: 'rel', npc: 'oryo', trust: 4 },
+              { t: 'xp', stat: 'speech', n: 25 },
+              { t: 'mem', npc: 'toshiie', id: 'smoothed', text: '茶屋里你几句话就化解了他和隼人的冲突，两边都没丢面子。' },
+              { t: 'mem', npc: 'hayato', id: 'smoothed', text: '你在茶屋替他和又左卫门打了圆场，他嘴上不说，心里记着。' },
+            ],
+            next: 'smooth',
+          },
+          {
             label: '站到隼人身边：“被逐出的人，就别在这里耍威风。”',
             effects: [
               { t: 'rel', npc: 'hayato', trust: 5 },
@@ -376,6 +433,11 @@ export const SOCIAL: SceneDef[] = [
       calm: {
         speaker: 'toshiie',
         text: '……哼。看在老板娘的面子上。\n\n（隼人被权六拖走了。高个子重新坐下，看了你一眼。）你胆子不小。坐吧。',
+        next: 'sit',
+      },
+      smooth: {
+        speaker: 'toshiie',
+        text: '……哈哈哈！说得好，“想立功的人，刀要留到战场上用”。小鬼，这杯我敬你。\n\n（隼人愣了一下，也举起了杯子。阿凉在柜台后面冲你眨了眨眼。）',
         next: 'sit',
       },
       side: {
@@ -491,6 +553,39 @@ export const SOCIAL: SceneDef[] = [
     },
   },
 
+  {
+    id: 'toshiie_mikiri',
+    title: '见切',
+    art: 'village',
+    priority: 47,
+    trigger: {
+      loc: ['village'],
+      when: (s) => !!s.flags.toshiieMet && here(s, 'toshiie') && R(s, 'toshiie').trust >= 15 && ((s.flags.wins_toshiie as number) ?? 0) >= 1 && !s.player.techniques.includes('mikiri'),
+    },
+    nodes: {
+      start: {
+        speaker: 'toshiie',
+        text: '上次输给你，我回去想了一晚上。\n\n你出手前总是先看我的肩——不错。但还不够。看枪的人会死，看肩的人能活，看“意”的人才能赢。\n\n站好。我刺十枪，你只准躲，不准挡。',
+        choices: [
+          {
+            label: '站到枪前',
+            effects: [
+              { t: 'tech', id: 'mikiri' },
+              { t: 'rel', npc: 'toshiie', trust: 6, respect: 6 },
+              { t: 'xp', stat: 'eye', n: 30 },
+              { t: 'time', slots: 1 },
+              { t: 'mem', npc: 'toshiie', id: 'mikiri', text: '又左卫门用十枪教会了你“见切”。' },
+            ],
+            next: 'done',
+          },
+        ],
+      },
+      done: {
+        speaker: 'narrator',
+        text: '前七枪你都没躲开，木枪头在你身上留下七道红印。第八枪，你在他肩膀动之前就侧开了半步。\n\n又左卫门收起枪，咧嘴一笑：“这就是见切。别谢我——下次在战场上，替我看住背后。”',
+      },
+    },
+  },
   // ───────── 信长 ─────────
   {
     id: 'nobunaga_pass',

@@ -157,7 +157,8 @@ test('存档：旧版本存档可以迁移', () => {
   delete old.toast;
   delete old.record;
   const m = migrate(old);
-  assert.equal(m.version, 1);
+  assert.equal(m.version, 2);
+  assert.equal(m.player.life.wit.lv, 1);
   assert.deepEqual(m.record, { bouts: 0, wins: 0, losses: 0 });
 });
 

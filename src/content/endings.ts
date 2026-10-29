@@ -19,6 +19,16 @@ const TITLES: Record<string, [string, string]> = {
   flee: ['过客', '你在历史到来之前离开了尾张'],
 };
 
+export const ENDING_IDS = ['battle', 'hayato', 'intel', 'stay', 'flee'] as const;
+
+export const ENDING_INFO: Record<string, { title: string; hint: string }> = {
+  battle: { title: '雨中的背影', hint: '与又左卫门立下约定，并让剑术足以自保' },
+  hayato: { title: '知退之人', hint: '和隼人成为真正的朋友' },
+  intel: { title: '看不见的线', hint: '走进阿凉背后的那张网' },
+  stay: { title: '守灯人', hint: '在最后一夜，选择守护身边的人' },
+  flee: { title: '过客', hint: '在历史到来之前离开' },
+};
+
 export function buildEnding(s: GameState): EndingView {
   const key = s.ending ?? 'stay';
   const [title, subtitle] = TITLES[key] ?? TITLES.stay;
@@ -43,7 +53,9 @@ export function buildEnding(s: GameState): EndingView {
   fates.push({
     name: '早瀬隼人',
     text:
-      hf === 'safe'
+      hf === 'treated'
+        ? '随冒进的队伍冲锋，身负重伤。你当场替他止血、固定伤腿，他保住了腿，也学会了等待。'
+        : hf === 'safe'
         ? '在佐佐、千秋的冒进中活了下来。他后来对人说：“有个怪人教会我什么时候该退。”'
         : hf === 'wounded'
           ? '随冒进的队伍冲锋，身负重伤，但捡回了一条命。他再也跑不快了，却从此学会了等待。'
@@ -100,7 +112,13 @@ export function buildEnding(s: GameState): EndingView {
   if (s.player.techniques.includes('fumikomi')) achievements.push('习得“踏入”');
   if (s.flags.villageSaved) achievements.push('五条村的恩人');
   if (sq >= 4) achievements.push('清兵卫锻冶开张');
-  if (s.flags.spyResolved) achievements.push('识破今川细作');
+  if (s.flags.spyResolved) achievements.push(s.flags.spyChoice === 'double' ? '策反今川细作' : '识破今川细作');
+  if (s.flags.townHealer) achievements.push('水月的先生');
+  const L = s.player.life;
+  if (L.wit.lv >= 3) achievements.push(`智略 ${L.wit.lv}`);
+  if (L.speech.lv >= 3) achievements.push(`口才 ${L.speech.lv}`);
+  if (L.med.lv >= 3) achievements.push(`医术 ${L.med.lv}`);
+  if (s.player.techniques.includes('mikiri')) achievements.push('习得“见切”');
   if (s.flags.battleResult === 'win') achievements.push('桶狭间·护背之功');
   if (hasMem(s, 'nobunaga', 'bold')) achievements.push('当街直言信长');
   achievements.push(`名声 ${s.player.fame}`);

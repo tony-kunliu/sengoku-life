@@ -22,6 +22,10 @@ import type { GameState, LocationId, NpcId, Stance, StatKey } from '../engine/ty
 import type { Apply } from './App';
 import { SceneArt } from './art';
 import { CharPortrait } from './portrait';
+import { goalsFor } from '../content/goals';
+import { PERKS } from '../content/perks';
+import { GIFTS, GIFT_IDS, dislikeKnown, giftLock, giveGift, likeKnown } from '../engine/gifts';
+import { LIFE_KEYS, lv as abilityLv, xpPct } from '../engine/training';
 
 const STANCE: Record<Stance, string> = {
   stranger: '未相识',
@@ -33,6 +37,12 @@ const STANCE: Record<Stance, string> = {
 };
 
 const LOC_ORDER: LocationId[] = ['village', 'town', 'teahouse', 'dojo'];
+
+const LIFE_HELP = {
+  wit: '看穿局势、算账、出谋划策。帮阿凉算账、在茶屋打听消息可以提升。',
+  speech: '说服与交际。在茶屋帮工、送对礼物、每天和人交谈可以提升。',
+  med: '救治伤病。在五条村替村民看病可以提升。',
+} as const;
 
 // ───────────────────────── 地图 ─────────────────────────
 export function MapScreen({ s, apply }: { s: GameState; apply: Apply }) {
@@ -75,6 +85,8 @@ export function MapScreen({ s, apply }: { s: GameState; apply: Apply }) {
           );
         })}
       </section>
+
+      <Goals s={s} apply={apply} />
 
       <p className="loc-desc">{txt(s, loc.desc)}</p>
 
@@ -128,12 +140,60 @@ export function MapScreen({ s, apply }: { s: GameState; apply: Apply }) {
         </button>
       </section>
 
-      {talkNpc && <TalkSheet s={s} npc={talkNpc} onClose={() => setTalkNpc(null)} />}
+      {talkNpc && <TalkSheet s={s} npc={talkNpc} apply={apply} onClose={() => setTalkNpc(null)} />}
     </div>
   );
 }
 
-function TalkSheet({ s, npc, onClose }: { s: GameState; npc: NpcId; onClose: () => void }) {
+function Goals({ s, apply }: { s: GameState; apply: Apply }) {
+  const goals = goalsFor(s);
+  if (!goals.length) return null;
+  return (
+    <section className="goals" aria-label="心之所向">
+      <h2 className="goals-title">心之所向</h2>
+      <ol>
+        {goals.map((g) => (
+          <li key={g.id} className={g.urgent ? 'urgent' : ''}>
+            <div className="goal-text">
+              <strong>{g.text}</strong>
+              <small>{g.detail}</small>
+            </div>
+            {g.loc && g.loc !== s.location && (
+              <button className="mini goal-go" onClick={() => apply((x) => travel(x, g.loc!))}>
+                前往{REG.locations[g.loc].name.replace('城外·', '').replace('茶屋·', '')}
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function GiftRow({ s, npc, apply }: { s: GameState; npc: NpcId; apply: Apply }) {
+  if (!REG.npcs[npc].likes) return null;
+  return (
+    <div className="gifts" aria-label="送礼">
+      <span className="gifts-label">送礼</span>
+      <div className="gift-grid">
+        {GIFT_IDS.map((g) => {
+          const lock = giftLock(s, npc, g);
+          const liked = likeKnown(s, npc) && REG.npcs[npc].likes === g;
+          const disliked = dislikeKnown(s, npc) && REG.npcs[npc].dislikes === g;
+          return (
+            <button key={g} className={`gift ${liked ? 'liked' : ''} ${disliked ? 'disliked' : ''}`} disabled={!!lock} title={lock ?? GIFTS[g].desc} onClick={() => apply((x) => giveGift(x, npc, g))}>
+              <span>{GIFTS[g].name}</span>
+              <small>{liked ? '喜欢' : disliked ? '不喜欢' : `${GIFTS[g].cost} 文`}</small>
+            </button>
+          );
+        })}
+      </div>
+      {giftLock(s, npc, 'tea') === '今天已经送过礼了' && <small className="muted">今天已经送过礼了。</small>}
+    </div>
+  );
+}
+
+function TalkSheet({ s, npc, apply, onClose }: { s: GameState; npc: NpcId; apply: Apply; onClose: () => void }) {
   const n = REG.npcs[npc];
   const raw = String(s.flags.lastTalk ?? '');
   const [who, ...rest] = raw.split('|');
@@ -152,10 +212,8 @@ function TalkSheet({ s, npc, onClose }: { s: GameState; npc: NpcId; onClose: () 
         </div>
         <p className="say">{line}</p>
         <RelBars s={s} npc={npc} />
-        <div className="ai-off">
-          <strong>自由对话</strong>
-          <span>{dialogue.enabled ? '' : dialogue.reason}</span>
-        </div>
+        <GiftRow s={s} npc={npc} apply={apply} />
+        {!dialogue.enabled && <p className="ai-off">自由对话尚未启用，剧情可通过固定选项完整体验。</p>}
         <button className="primary" onClick={onClose}>
           结束交谈
         </button>
@@ -263,6 +321,32 @@ function NpcDetail({ s, id }: { s: GameState; id: NpcId }) {
         <dd>{n.status(s)}</dd>
       </dl>
       {id !== 'nobunaga' && <RelBars s={s} npc={id} />}
+      {n.likes && (
+        <p className="likes">
+          喜欢的礼物：{likeKnown(s, id) ? GIFTS[n.likes as keyof typeof GIFTS].name : '还不知道（送一次礼，或向熟人打听）'}
+          {dislikeKnown(s, id) && n.dislikes ? ` · 讨厌：${GIFTS[n.dislikes as keyof typeof GIFTS].name}` : ''}
+        </p>
+      )}
+      {PERKS[id] && (
+        <>
+          <h3>关系回报</h3>
+          <ul className="perks">
+            {PERKS[id]!.map((p, i) => {
+              const done = p.done?.(s);
+              const ok = done || p.ok(s);
+              return (
+                <li key={i} className={done ? 'done' : ok ? 'ok' : ''}>
+                  <span className="perk-mark">{done ? '✓' : ok ? '◆' : '◇'}</span>
+                  <span>
+                    <strong>{p.need}</strong>
+                    <small>{p.reward}</small>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
       <h3>记忆</h3>
       {st.memories.length === 0 ? (
         <p className="muted">还没有值得记住的事。</p>
@@ -338,6 +422,30 @@ export function TrainScreen({ s }: { s: GameState }) {
           <small className="muted">比试中的体力上限。在村外山路奔跑可以提升。</small>
         </div>
         {p.weapon > 0 && <p className="muted">兵器：清兵卫特制橡木木刀（威力 +{p.weapon}）</p>}
+      </section>
+
+      <section className="block">
+        <h2>生活能力</h2>
+        {LIFE_KEYS.map((k) => {
+          const st = p.life[k];
+          return (
+            <div key={k} className="stat">
+              <div className="stat-head">
+                <strong>{STAT_FULL[k]}</strong>
+                <span className="pips">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} className={`pip life ${i < st.lv ? 'on' : 'open'}`} />
+                  ))}
+                </span>
+                <span className="stat-num">{abilityLv(s, k)}</span>
+              </div>
+              <div className="xp">
+                <span className="xp-fill" style={{ width: `${st.lv >= 5 ? 100 : xpPct(s, k)}%` }} />
+              </div>
+              <small className="muted">{LIFE_HELP[k]}</small>
+            </div>
+          );
+        })}
       </section>
 
       <section className="block">

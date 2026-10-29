@@ -6,6 +6,7 @@ import { clone, doneToday, log, markToday, meet, rel, remember, setStance, toast
 import { OKEHAZAMA_DAY, SLOT_LABEL, dateLabel } from './calendar';
 import { REG, type Choice, type Effect, type SceneNode, type Txt } from './registry';
 import { gainXp, raiseCap } from './training';
+import { autoMove } from './combat/auto';
 import type { BoutContext, GameState, LocationId, NpcId, Slot } from './types';
 
 export const txt = (s: GameState, t: Txt) => (typeof t === 'function' ? t(s) : t).replace(/\{name\}/g, s.player.name);
@@ -43,10 +44,13 @@ export function applyEffect(s: GameState, e: Effect) {
       s.player.money = Math.max(0, s.player.money + e.n);
       toast(s, `钱 ${e.n > 0 ? '+' : ''}${e.n} 文`);
       break;
-    case 'fame':
-      s.player.fame += e.n;
-      toast(s, `名声 ${e.n > 0 ? '+' : ''}${e.n}`);
+    case 'fame': {
+      // 五郎作（恩义 30）逢人便说你的好话
+      const bonus = e.n > 0 && s.npcs.gosaku.rel.favor >= 30 ? 1 : 0;
+      s.player.fame += e.n + bonus;
+      toast(s, `名声 ${e.n > 0 ? '+' : ''}${e.n + bonus}`);
       break;
+    }
     case 'xp':
       toast(s, gainXp(s, e.stat, e.n, true));
       break;
@@ -224,7 +228,10 @@ export function talk(prev: GameState, npc: NpcId): GameState {
   const first = st.talkedDay !== s.day;
   st.talkedDay = s.day;
   applyEffects(s, res.effects);
-  if (first && npc !== 'nobunaga') rel(s, npc, { trust: 2 }, npcName());
+  if (first && npc !== 'nobunaga') {
+    rel(s, npc, { trust: 2 }, npcName());
+    gainXp(s, 'speech', 8, true);
+  }
   s.flags.lastTalk = `${npc}|${res.text}`;
   log(s, `${REG.npcs[npc].name}：${res.text}`, 'event');
   checkTriggers(s);
@@ -339,6 +346,21 @@ export function playMove(prev: GameState, m: Move): GameState {
   s.toast = [];
   s.bout!.combat = resolveRound(s.bout!.combat, m);
   s.rngState = s.bout!.combat.rng;
+  return s;
+}
+
+/** 速决：只对已经赢过的对手开放，按习惯自动打完（规则与手动完全相同） */
+export function canQuickFinish(s: GameState): boolean {
+  const b = s.bout;
+  if (!b || b.combat.finished || b.context.kind !== 'spar') return false;
+  return ((s.flags[`wins_${b.combat.oppId}`] as number) ?? 0) >= 1;
+}
+
+export function quickFinish(prev: GameState): GameState {
+  if (!canQuickFinish(prev)) return prev;
+  let s = prev;
+  const know = prev.oppKnowledge[prev.bout!.combat.oppId] ?? 0;
+  for (let i = 0; i < 30 && s.bout && !s.bout.combat.finished; i++) s = playMove(s, autoMove(s.bout.combat, know));
   return s;
 }
 

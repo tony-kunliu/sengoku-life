@@ -1,7 +1,7 @@
 import { doneToday, flag, quest, R, rel, remember, toast } from '../engine/core';
 import { startBout, startScene } from '../engine/game';
 import type { ActionDef } from '../engine/registry';
-import { gainXp, nextRepGain } from '../engine/training';
+import { gainXp, lv, nextRepGain } from '../engine/training';
 import type { GameState, NpcId } from '../engine/types';
 import { NPCS } from './npcs';
 import { hearRumor } from './world';
@@ -53,8 +53,9 @@ export const ACTIONS: ActionDef[] = [
     desc: (s) => (quest(s, 'seibei') === 99 ? '清兵卫的铺子已经被封了。' : '在炉边帮忙，顺便听他讲钢和火候。（+20 文，清兵卫信任）'),
     locked: (s) => (quest(s, 'seibei') === 99 ? '铺子已被封' : NPCS.seibei.where(s).doing.includes('铺') ? null : '他现在不在铺子里'),
     run: (s) => {
-      s.player.money += 20;
-      toast(s, '钱 +20 文');
+      const pay = R(s, 'seibei').trust >= 20 ? 30 : 20;
+      s.player.money += pay;
+      toast(s, `钱 +${pay} 文`);
       r(s, 'seibei', { trust: 4, favor: 1 });
       const n = doneToday(s, 'seibei_help_total');
       void n;
@@ -180,6 +181,10 @@ export const ACTIONS: ActionDef[] = [
       startBout(s, 'hayato', { kind: 'spar', label: '道场切磋' });
       if (R(s, 'hayato').stance !== 'rival') r(s, 'hayato', { trust: 2, respect: 1 });
       else r(s, 'hayato', { respect: 2 });
+      if (R(s, 'hayato').trust >= 20 && (s.oppKnowledge.gonroku ?? 0) < 3) {
+        s.oppKnowledge.gonroku = (s.oppKnowledge.gonroku ?? 0) + 1;
+        toast(s, '隼人跟你讲了权六的习惯（权六情报 +1）');
+      }
       return '你向隼人行礼，请他赐教。';
     },
   },
@@ -248,14 +253,15 @@ export const ACTIONS: ActionDef[] = [
     npc: 'oryo',
     cost: 1,
     icon: '🍵',
-    desc: '端茶、烧水、听客人说话。（+25 文，阿凉信任，可能听到消息）',
+    desc: (s) => `端茶、烧水、和客人搭话。（+25 文，阿凉信任，口才经验 +${nextRepGain(s, 'speech', 32)}）`,
     run: (s) => {
       const pay = s.player.lodging === 'teahouse' ? 20 : 25;
       s.player.money += pay;
       toast(s, `钱 +${pay} 文`);
       r(s, 'oryo', { trust: 3 });
+      const sp = gainXp(s, 'speech', 32, false);
       const t = hearRumor(s);
-      return `你忙了一个时辰，得了 ${pay} 文${s.player.lodging === 'teahouse' ? '（扣去饭钱）' : ''}。端茶时听见客人说：“${t}”`;
+      return `你忙了一个时辰，得了 ${pay} 文（${sp}）${s.player.lodging === 'teahouse' ? '（扣去饭钱）' : ''}。端茶时听见客人说：“${t}”`;
     },
   },
   {
@@ -270,11 +276,59 @@ export const ACTIONS: ActionDef[] = [
       s.player.money -= 10;
       const a = hearRumor(s);
       const b = hearRumor(s);
-      return `你听到两段议论：“${a}”……“${b}”`;
+      const w = gainXp(s, 'wit', 15, true);
+      return `你听到两段议论：“${a}”……“${b}”（${w}）`;
     },
   },
 
+  {
+    id: 'tea_accounts',
+    label: '帮阿凉算账',
+    loc: 'teahouse',
+    npc: 'oryo',
+    cost: 1,
+    icon: '🧮',
+    tag: '智略',
+    when: (s) => s.player.lodging === 'teahouse' || R(s, 'oryo').trust >= 10,
+    locked: onceToday('tea_accounts', '今天的账已经算完了'),
+    desc: '用现代的算法替水月理账。（每日一次：+15 文，阿凉尊敬，智略经验 +25）',
+    run: (s) => {
+      s.player.money += 15;
+      toast(s, '钱 +15 文');
+      r(s, 'oryo', { respect: 2, trust: 1 });
+      const w = gainXp(s, 'wit', 25, true);
+      const lines = [
+        '你用竖式把一个月的账从头算了一遍，找出了三处错账。阿凉盯着你写的阿拉伯数字看了很久。',
+        '你教阿凉用“复式”记进出。她嘴上说麻烦，却把那页纸折好收进了袖子。',
+        '账本里有一笔给“簗田家”的支出，阿凉若无其事地翻了过去。',
+      ];
+      return `${lines[s.day % lines.length]}（${w}）`;
+    },
+  },
   // ───── 城外村庄 ─────
+  {
+    id: 'village_heal',
+    label: '替村民看病',
+    loc: 'village',
+    cost: 1,
+    icon: '🌿',
+    tag: '医术',
+    when: (s) => !!s.flags.villageSaved || lv(s, 'med') >= 1,
+    locked: onceToday('village_heal', '今天该看的病人都看过了'),
+    desc: '烧水消毒、包扎伤口、教人分辨草药。（每日一次：+10 文，五郎作信任，医术经验 +25）',
+    run: (s) => {
+      s.player.money += 10;
+      toast(s, '钱 +10 文');
+      r(s, 'gosaku', { trust: 2, favor: 1 });
+      const m = gainXp(s, 'med', 25, true);
+      const lines = [
+        '一个割稻时划伤手的年轻人来找你。你用烧过的布替他包扎，叮嘱他别用泥巴敷伤口。',
+        '村里的老婆婆咳了半个月。你让她喝热水、少吸炭窑的烟，又教她家人煮姜汤。',
+        '你在田埂边认出了几种能止泻的草，画给村里的孩子们看。',
+      ];
+      return `${lines[s.day % lines.length]}（${m}）`;
+    },
+  },
   {
     id: 'village_farm',
     label: '帮五郎作干农活',

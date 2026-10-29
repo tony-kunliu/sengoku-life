@@ -1,9 +1,15 @@
+import { useEffect } from 'react';
 import { buildEnding } from '../content/endings';
+import { recordEnding, seenEndings } from './gallery';
 import type { GameState } from '../engine/types';
 import { SceneArt } from './art';
 
 export function EndingView({ s, onTitle }: { s: GameState; onTitle: () => void }) {
   const e = buildEnding(s);
+  useEffect(() => {
+    if (s.ending) recordEnding(s.ending);
+  }, [s.ending]);
+  const seen = new Set([...seenEndings(), s.ending ?? '']).size - (s.ending ? 0 : 1);
   return (
     <div className="ending">
       <SceneArt name={s.ending === 'flee' ? 'village' : 'night'} className="ending-art" />
@@ -37,6 +43,7 @@ export function EndingView({ s, onTitle }: { s: GameState; onTitle: () => void }
             <li key={f}>{f}</li>
           ))}
         </ul>
+        <p className="ending-count">结局图鉴 {Math.min(5, seen)} / 5</p>
         <p className="muted">换一种选择再来一次：不同的住处、对细作的处置、与谁结下交情，都会改变结局。</p>
         <button className="primary big" onClick={onTitle}>
           回到标题
