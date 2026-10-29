@@ -1,0 +1,10 @@
+{
+  "name": "战国浮生录 Sengoku Life",
+  "short_name": "战国浮生录",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1f2a44",
+  "theme_color": "#1f2a44",
+  "orientation": "portrait",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
